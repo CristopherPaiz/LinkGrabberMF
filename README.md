@@ -17,13 +17,20 @@ Dentro de la app, `Ayuda` o `F1` explica cada botón, estado y atajo.
 
 ## Requisitos para usarla
 
-- Windows 10 o 11 de 64 bits, con .NET Framework 4.6.2 o superior.
-- JDownloader 2 con la API local activada:
-  1. Abre `Configuración > Ajustes avanzados`.
-  2. Busca `deprecated`.
-  3. Activa `deprecatedapienabled`.
-  4. Reinicia JD2.
-- WebView2 Runtime, solo para el navegador integrado. Windows 11 suele traerlo.
+| Necesita | Para qué | Si falta | Descarga |
+|---|---|---|---|
+| Windows 10 u 11 de 64 bits | Todo | En Windows de 32 bits no abre. En Windows 7 u 8 los iconos salen como cuadros. | — |
+| .NET Framework 4.6.2 o superior | Todo | No abre, y Windows lo avisa. Windows 10 y 11 ya traen .NET 4.8. | [Página de .NET 4.8.1](https://dotnet.microsoft.com/download/dotnet-framework/net481) · [Descarga directa (74 MB)](https://go.microsoft.com/fwlink/?linkid=2203305) |
+| WebView2 Runtime | Solo el navegador integrado, cuando la página pide comprobar que eres una persona | LinkGrab avisa y ofrece los dos enlaces. Lo demás funciona igual. Windows 11 lo trae. | [Página de WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2) · [Descarga directa (1,8 MB)](https://go.microsoft.com/fwlink/p/?LinkId=2124703) |
+| JDownloader 2 con la API local activada | Enviar, reemplazar, iniciar y sincronizar | Esos botones se desactivan; obtener y copiar enlaces sigue funcionando. LinkGrab muestra los pasos, y un enlace si no encuentra JD2. | [Página de JDownloader 2](https://jdownloader.org/jdownloader2) |
+
+Para activar la API de JD2:
+1. Abre `Configuración > Ajustes avanzados`.
+2. Busca `deprecated`.
+3. Activa `deprecatedapienabled`.
+4. Reinicia JD2.
+
+JDownloader 2 no tiene descarga directa estable: su página enlaza instaladores en Mega que cambian con cada versión, y el instalador puede ofrecer programas extra. Por eso solo se enlaza la página.
 
 ## Compilar
 

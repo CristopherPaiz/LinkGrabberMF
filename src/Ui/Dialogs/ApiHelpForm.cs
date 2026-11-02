@@ -24,6 +24,7 @@ namespace LinkGrab.Ui.Dialogs
 
         readonly Label heading = new Label { Font = Theme.Bold, Left = LabelGutter, Top = 18, AutoSize = true };
         readonly Label steps = new Label { Left = LabelGutter, Top = 50, Width = 524, Height = 270 };
+        readonly Label missing = new Label { Left = LabelGutter, Top = 50, Width = 524, Height = 56, ForeColor = Theme.Warn };
         readonly IconButton open = new IconButton(Strings.ButtonOpenJd, null, true);
         readonly Timer check = new Timer { Interval = Timing.ApiHelpCheckMs };
         readonly string jdPath = FindJd();
@@ -37,10 +38,23 @@ namespace LinkGrab.Ui.Dialogs
 
             heading.Text = Strings.JdConnectHeading;
             steps.Text = Strings.JdConnectSteps;
-
             Controls.AddRange(new Control[] { heading, steps });
-            if (jdPath != null) AddFooter(open, close);
-            else AddFooter(close);
+
+            if (jdPath != null)
+            {
+                AddFooter(open, close);
+            }
+            else
+            {
+                // It may also be installed somewhere else, so this only offers the download.
+                var download = new IconButton(Strings.ButtonGetJd, Glyph.Download, true);
+                download.Click += (s, e) => Process.Start(JdApi.DownloadPage);
+                Controls.Add(missing);
+                missing.Text = Strings.JdNotFound;
+                steps.Top += missing.Height;
+                Height += Theme.S(missing.Height);
+                AddFooter(download, close);
+            }
 
             check.Tick += async (s, e) => await Check();
             Shown += async (s, e) =>

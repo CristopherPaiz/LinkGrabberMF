@@ -39,7 +39,16 @@ namespace LinkGrab.Constants
         };
         public const string PackedSuffix = ".gz";
         public const string PartialSuffix = ".tmp";
-        public const string InstallUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
+        // The page first, since people trust it more than a file that just starts downloading;
+        // the direct one is Microsoft's small installer, which fetches the current runtime.
+        public const string PageUrl = "https://developer.microsoft.com/en-us/microsoft-edge/webview2";
+        public const string InstallUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+    }
+
+    public static class DotNetFiles
+    {
+        public const string PageUrl = "https://dotnet.microsoft.com/download/dotnet-framework/net481";
+        public const string InstallUrl = "https://go.microsoft.com/fwlink/?linkid=2203305";
     }
 
     public static class Limits
@@ -78,6 +87,7 @@ namespace LinkGrab.Constants
         public const string DefaultBase = "http://127.0.0.1:3128";
         public const string DefaultClickNLoad = "http://127.0.0.1:9666/flash/";
         public const string TransitPackage = "LinkGrab";
+        public const string DownloadPage = "https://jdownloader.org/jdownloader2";
 
         // Without this JD2's MediaFire plugin swaps the direct link for the file's page.
         public const string DirectLinkPrefix = "directhttp://";

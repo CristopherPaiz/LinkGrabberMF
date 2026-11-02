@@ -27,6 +27,9 @@ namespace LinkGrab.Constants
         public const string ButtonOpenJd = "Abrir JDownloader 2";
         public const string ButtonActivateApi = "Activar API de JD2";
         public const string ButtonOpenJdShort = "Abrir JD2";
+        public const string ButtonGetJd = "Descargar JDownloader 2";
+        public const string ButtonWebViewPage = "Página de WebView2";
+        public const string ButtonWebViewDirect = "Descarga directa";
 
         public const string TipAdd = "Añade enlaces de archivos o carpetas de MediaFire.";
         public const string TipNeedsApi = "Esto usa la API de JD2, que está apagada. Pulsa \"" + ButtonActivateApi + "\" para encenderla.";
@@ -223,7 +226,8 @@ namespace LinkGrab.Constants
         public const string BrowserHint = "Si aparece un challenge, resuélvelo. El enlace se captura solo.";
         public const string BrowserCaptured = "Enlace capturado, enviando a JD2...";
         public const string BrowserNoRuntime = "Este equipo no tiene WebView2";
-        public const string BrowserInstall = "Instálalo desde {0} y vuelve a intentarlo.";
+        public const string BrowserInstall = "Solo hace falta si la página pide comprobar que eres una persona. Instálalo y vuelve a pulsar Obtener enlace.";
+        public const string JdNotFound = "No encontré JDownloader 2 en este equipo. Si no lo tienes, pulsa \"" + ButtonGetJd + "\", instálalo y sigue estos pasos. Sin JD2 puedes obtener y copiar enlaces igual.";
         public const string BrowserFailed = "No pude abrir el navegador integrado";
 
         public const string ErrorUnsupportedSite = "{0} aún no es compatible: por ahora LinkGrab solo funciona con MediaFire.";
@@ -248,5 +252,8 @@ namespace LinkGrab.Constants
         public const string HelpFilters = "Filtros";
         public const string HelpKeys = "Atajos y selección";
         public const string HelpProject = "Proyecto";
+        public const string HelpRequirements = "Lo que necesita";
+        public const string LinkPage = "Página oficial";
+        public const string LinkDirect = "Descarga directa";
     }
 }

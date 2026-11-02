@@ -14,6 +14,10 @@ namespace LinkGrab.Ui.Dialogs
         public string Glyph { get; private set; }
         public string Title { get; private set; }
         public string Text { get; private set; }
+
+        // Where to get it, for what LinkGrab needs installed; either may be missing.
+        public string PageUrl { get; set; }
+        public string DirectUrl { get; set; }
     }
 
     // What the help window explains, section by section.
@@ -56,6 +60,25 @@ namespace LinkGrab.Ui.Dialogs
             new HelpEntry(Glyph.Download, Strings.NavInJd, "Lo que JD2 tiene ahora, en LinkGrabber o en descargas."),
             new HelpEntry(Glyph.Done, Strings.NavDone, "Descargas terminadas."),
             new HelpEntry(Glyph.Gone, Strings.NavRemoved, "Lo que se borró directamente en JD2.")
+        };
+
+        public static readonly HelpEntry[] Requirements =
+        {
+            new HelpEntry(null, "Windows 10 u 11", "De 64 bits. En Windows de 32 bits no abre."),
+            new HelpEntry(null, ".NET Framework", "4.6.2 o superior. Windows 10 y 11 ya lo traen; si faltara, LinkGrab no abriría.")
+            {
+                PageUrl = DotNetFiles.PageUrl,
+                DirectUrl = DotNetFiles.InstallUrl
+            },
+            new HelpEntry(null, "WebView2", "Solo para el navegador integrado, cuando la página pide comprobar que eres una persona. Windows 11 lo trae.")
+            {
+                PageUrl = WebViewFiles.PageUrl,
+                DirectUrl = WebViewFiles.InstallUrl
+            },
+            new HelpEntry(null, "JDownloader 2", "Para enviar, reemplazar e iniciar descargas. Sin él puedes obtener y copiar enlaces. Su descarga está solo en su página, porque los instaladores cambian con cada versión.")
+            {
+                PageUrl = JdApi.DownloadPage
+            }
         };
 
         public static readonly HelpEntry[] Keys =

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -29,6 +30,10 @@ namespace LinkGrab.Ui.Dialogs
         readonly Label title = new Label { AutoSize = true, UseMnemonic = false, Font = Theme.Bold };
         readonly Label hint = new Label { AutoSize = true, ForeColor = Theme.Muted };
         readonly Timer watcher = new Timer { Interval = Timing.BrowserCheckMs };
+        readonly IconButton page = new IconButton(Strings.ButtonWebViewPage, null, true) { Visible = false };
+        readonly IconButton install = new IconButton(Strings.ButtonWebViewDirect, Glyph.Download) { Visible = false };
+        readonly IconButton reload = new IconButton(Strings.ButtonReload, Glyph.Sync);
+        readonly IconButton skip = new IconButton(Strings.ButtonSkip) { Margin = new Padding(0) };
         int index = -1;
         bool checking;
         bool revealed;
@@ -64,23 +69,33 @@ namespace LinkGrab.Ui.Dialogs
 
         Control BuildHeader()
         {
-            var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = Theme.S(66), ColumnCount = 3, RowCount = 2, Padding = new Padding(Theme.S(14), Theme.S(8), Theme.S(14), Theme.S(6)), BackColor = Theme.Back };
+            var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = Theme.S(66), ColumnCount = 5, RowCount = 2, Padding = new Padding(Theme.S(14), Theme.S(8), Theme.S(14), Theme.S(6)), BackColor = Theme.Back };
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            for (int i = 0; i < 4; i++) header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-            var reload = new IconButton(Strings.ButtonReload, Glyph.Sync);
+            page.Click += (s, e) => Process.Start(WebViewFiles.PageUrl);
+            install.Click += (s, e) => Process.Start(WebViewFiles.InstallUrl);
             reload.Click += (s, e) => { if (view.CoreWebView2 != null) view.CoreWebView2.Reload(); };
-            var skip = new IconButton(Strings.ButtonSkip) { Margin = new Padding(0) };
-            skip.Click += (s, e) => Next();
+            skip.Click += (s, e) => { if (view.CoreWebView2 == null) Close(); else Next(); };
 
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(hint, 0, 1);
-            header.Controls.Add(reload, 1, 0);
-            header.Controls.Add(skip, 2, 0);
-            header.SetRowSpan(reload, 2);
-            header.SetRowSpan(skip, 2);
+            Control[] buttons = { page, install, reload, skip };
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                header.Controls.Add(buttons[i], i + 1, 0);
+                header.SetRowSpan(buttons[i], 2);
+            }
             return header;
+        }
+
+        // Without the browser there is nothing to reload or skip: only getting it, or closing.
+        void ShowMissingRuntime()
+        {
+            page.Visible = true;
+            install.Visible = true;
+            reload.Visible = false;
+            skip.Text = Strings.ButtonClose;
         }
 
         protected override void OnHandleCreated(EventArgs e)
@@ -119,7 +134,8 @@ namespace LinkGrab.Ui.Dialogs
             catch (WebView2RuntimeNotFoundException)
             {
                 failure = Strings.BrowserNoRuntime;
-                detail = string.Format(Strings.BrowserInstall, WebViewFiles.InstallUrl);
+                detail = Strings.BrowserInstall;
+                ShowMissingRuntime();
             }
             catch (Exception e)
             {
