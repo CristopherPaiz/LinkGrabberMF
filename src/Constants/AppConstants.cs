@@ -68,6 +68,7 @@ namespace LinkGrab.Constants
         public const int ToastLifeMs = 9000;
         public const int ActivityFrameMs = 30;
         public static readonly TimeSpan BrowserHiddenFor = TimeSpan.FromSeconds(12);
+        public static readonly TimeSpan ClipboardRepeatWindow = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan ProbeEvery = TimeSpan.FromMinutes(5);
         public static readonly TimeSpan SentGrace = TimeSpan.FromSeconds(60);
     }
@@ -77,6 +78,9 @@ namespace LinkGrab.Constants
         public const string DefaultBase = "http://127.0.0.1:3128";
         public const string DefaultClickNLoad = "http://127.0.0.1:9666/flash/";
         public const string TransitPackage = "LinkGrab";
+
+        // Without this JD2's MediaFire plugin swaps the direct link for the file's page.
+        public const string DirectLinkPrefix = "directhttp://";
         public const string Offline = "OFFLINE";
         public const string StateSuffix = "_STATE";
         public const string StateRunning = "RUNNING";
@@ -95,6 +99,7 @@ namespace LinkGrab.Constants
         public const string GrabberRemove = "/linkgrabberv2/removeLinks";
         public const string GrabberEnabled = "/linkgrabberv2/setEnabled";
         public const string GrabberToDownloads = "/linkgrabberv2/moveToDownloadlist";
+        public const string GrabberMove = "/linkgrabberv2/moveLinks";
         public const string IsCollecting = "/linkgrabberv2/isCollecting";
         public const string DownloadLinks = "/downloadsV2/queryLinks";
         public const string DownloadPackages = "/downloadsV2/queryPackages";

@@ -34,8 +34,9 @@ namespace LinkGrab.Services
             return Urls(text).Where(IsMediaFirePage).ToList();
         }
 
-        static bool IsMediaFirePage(string url)
+        public static bool IsMediaFirePage(string url)
         {
+            if (url == null) return false;
             return Regex.IsMatch(url, MediaFireApi.FolderPattern, RegexOptions.IgnoreCase)
                 || Regex.IsMatch(url, MediaFireApi.FilePattern, RegexOptions.IgnoreCase);
         }

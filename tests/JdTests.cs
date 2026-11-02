@@ -88,6 +88,96 @@ namespace LinkGrab.Tests
         }
     }
 
+    public static class DirectLinkTests
+    {
+        public static void SendingKeepsJdFromSwappingTheDirectLink()
+        {
+            using (var jd = new FakeJd())
+            {
+                var sender = new JdSender(new Settings { BaseFolder = @"C:\Bajadas" });
+                var item = new FileItem { DirectUrl = "https://download1.mediafire.com/t/abc/f.zip", LinkState = LinkState.Ready };
+                // Off the main thread: a test before this one may have left a window context on it.
+                System.Threading.Tasks.Task.Run(() => sender.Add(new List<FileItem> { item })).Wait();
+                var sent = Json.Read<Dictionary<string, object>>(jd.LastQuery);
+                Check.Equal("directhttp://https://download1.mediafire.com/t/abc/f.zip", sent["links"]);
+            }
+        }
+
+        public static void NoticesWhenJdHoldsThePageInsteadOfTheDirectLink()
+        {
+            Check.True(new FileItem { JdWhere = JdLocation.Grabber, JdUrl = "https://www.mediafire.com/file/abc/f.zip" }.JdUsesPage, "página");
+            Check.True(!new FileItem { JdWhere = JdLocation.Grabber, JdUrl = "https://download1.mediafire.com/t/abc/f.zip" }.JdUsesPage, "directo");
+            Check.True(!new FileItem { JdUrl = "https://www.mediafire.com/file/abc/f.zip" }.JdUsesPage, "no está en JD2");
+            Check.True(!new FileItem { JdWhere = JdLocation.Downloads, JdRunning = true, JdUrl = "https://www.mediafire.com/file/abc/f.zip" }.JdUsesPage, "descargando");
+        }
+
+        public static void RowOffersToReplaceThePage()
+        {
+            var item = new FileItem { DirectUrl = "u", LinkState = LinkState.Ready, Sent = true, JdWhere = JdLocation.Grabber, JdUrl = "https://www.mediafire.com/file/abc/f.zip" };
+            Check.Equal("Copy,Reload,Replace", string.Join(",", LinkGrab.Ui.Grid.ItemPresenter.ActionsOf(item)));
+        }
+
+        static FileItem PageInJd()
+        {
+            return new FileItem { Key = "abc", Name = "f.zip", Folder = "Parte 1", Sent = true, JdWhere = JdLocation.Grabber, JdUuid = 5, JdPackage = 9, JdUrl = "https://www.mediafire.com/file/abc/f.zip" };
+        }
+
+        public static void APageInJdIsNotShownAsDone()
+        {
+            Check.Equal(Strings.StateJdPage, LinkGrab.Ui.Grid.ItemPresenter.StateOf(PageInJd()).Text);
+            Check.True(PageInJd().NeedsAttention, "debía contar como problema");
+        }
+
+        public static void APageInJdWithoutLinkCanGetOne()
+        {
+            Check.True(PageInJd().WantsLink, "debía pedir enlace");
+            Check.Equal("GetLink", string.Join(",", LinkGrab.Ui.Grid.ItemPresenter.ActionsOf(PageInJd())));
+            Check.Equal("GetLink", string.Join(",", LinkGrab.Ui.Grid.ItemPresenter.ActionsOf(new List<FileItem> { PageInJd() })));
+        }
+
+        public static void AFolderOffersToReplaceItsPages()
+        {
+            FileItem item = PageInJd();
+            item.DirectUrl = "https://download1.mediafire.com/t/abc/f.zip";
+            item.LinkState = LinkState.Ready;
+            Check.Equal("Replace", string.Join(",", LinkGrab.Ui.Grid.ItemPresenter.ActionsOf(new List<FileItem> { item })));
+        }
+
+        public static void ADirectLinkInJdIsNotHiddenByAPageCaughtLater()
+        {
+            using (var jd = new FakeJd())
+            {
+                jd.Answer(JdRoutes.GrabberLinks, "[{\"uuid\":1,\"url\":\"https://download1.mediafire.com/t/abc/f.zip\"},{\"uuid\":2,\"url\":\"https://www.mediafire.com/file/abc/f.zip\"}]");
+                FileItem item = PageInJd();
+                JdSnapshot.Fetch().ApplyTo(new[] { item });
+                Check.Equal(1L, item.JdUuid);
+                Check.True(!item.JdUsesPage, "el directo manda");
+            }
+        }
+
+        public static void ReplacingKeepsTheLinkInItsPackage()
+        {
+            using (var jd = new FakeJd())
+            {
+                jd.Answer(JdRoutes.GrabberLinks, "[{\"uuid\":5,\"packageUUID\":9,\"url\":\"https://www.mediafire.com/file/abc/f.zip\"}]");
+                jd.GrabberAfterAdd = "[{\"uuid\":5,\"packageUUID\":9,\"url\":\"https://www.mediafire.com/file/abc/f.zip\"},{\"uuid\":6,\"packageUUID\":77,\"url\":\"https://download1.mediafire.com/t/abc/f.zip\"}]";
+                FileItem item = PageInJd();
+                item.DirectUrl = "https://download1.mediafire.com/t/abc/f.zip";
+                item.LinkState = LinkState.Ready;
+
+                var sender = new JdSender(new Settings { BaseFolder = @"C:\Bajadas" });
+                System.Threading.Tasks.Task.Run(() => sender.Reinsert(item)).Wait();
+
+                List<string> changes = jd.Changes;
+                Check.Equal(3, changes.Count);
+                Check.True(changes[0].StartsWith(JdRoutes.AddLinks), "primero añade");
+                Check.Equal(JdRoutes.GrabberMove + "?[6]&5&9", changes[1]);
+                Check.Equal(JdRoutes.GrabberRemove + "?[5]&[]", changes[2]);
+                Check.Equal(6L, item.JdUuid);
+            }
+        }
+    }
+
     public static class JdSnapshotTests
     {
         const string RunningLink = "[{\"uuid\":7,\"packageUUID\":9,\"url\":\"https://download1.mediafire.com/tok/abc/f.zip\",\"running\":true,\"bytesLoaded\":50,\"bytesTotal\":200}]";

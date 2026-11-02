@@ -14,7 +14,7 @@ namespace LinkGrab.Services
         public static long Replace(FileItem item, string destination)
         {
             var known = new HashSet<long>(JDownloaderClient.GrabberLinks().Select(l => l.Uuid));
-            JDownloaderClient.AddLinks(new[] { item.DirectUrl }, JdApi.TransitPackage, destination, false);
+            JDownloaderClient.AddLinks(new[] { JdApi.DirectLinkPrefix + item.DirectUrl }, JdApi.TransitPackage, destination, false);
 
             JdLink fresh = WaitFor(() => JDownloaderClient.GrabberLinks().FirstOrDefault(l => !known.Contains(l.Uuid) && Matches(l, item)));
             if (fresh == null) throw new Exception(string.Format(Strings.ErrorJdNoLink, item.Name));
@@ -31,7 +31,7 @@ namespace LinkGrab.Services
             return fresh.Uuid;
         }
 
-        static bool Matches(JdLink link, FileItem item)
+        internal static bool Matches(JdLink link, FileItem item)
         {
             return link.Url != null && (link.Url == item.DirectUrl || link.Url.Split('/').Contains(item.Key));
         }

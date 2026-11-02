@@ -22,11 +22,20 @@ namespace LinkGrab.Tests
             { JdRoutes.IsCollecting, "false" },
             { JdRoutes.State, "\"STOPPED_STATE\"" },
             { JdRoutes.Speed, "0" },
-            { JdRoutes.AddLinks, "null" }
+            { JdRoutes.AddLinks, "null" },
+            { JdRoutes.GrabberMove, "null" },
+            { JdRoutes.GrabberRemove, "null" }
         };
         readonly string previousBase = JDownloaderClient.Base;
+        readonly List<string> calls = new List<string>();
 
         public string LastQuery { get; private set; }
+
+        // What LinkGrabber holds once links were added, as JD2 would show after crawling them.
+        public string GrabberAfterAdd { get; set; }
+
+        // Every request except reads, as "route?arguments".
+        public List<string> Changes { get { lock (calls) return new List<string>(calls); } }
 
         public FakeJd()
         {
@@ -71,7 +80,16 @@ namespace LinkGrab.Tests
         void Reply(HttpListenerContext context)
         {
             string route = context.Request.Url.AbsolutePath;
-            if (route == JdRoutes.AddLinks) LastQuery = Uri.UnescapeDataString(context.Request.Url.Query.TrimStart('?'));
+            string query = Uri.UnescapeDataString(context.Request.Url.Query.TrimStart('?'));
+            if (route == JdRoutes.AddLinks)
+            {
+                LastQuery = query;
+                if (GrabberAfterAdd != null) answers[JdRoutes.GrabberLinks] = GrabberAfterAdd;
+            }
+            if (route == JdRoutes.AddLinks || route == JdRoutes.GrabberMove || route == JdRoutes.GrabberRemove)
+            {
+                lock (calls) calls.Add(route + "?" + query);
+            }
 
             string answer;
             if (answers.TryGetValue(route, out answer))

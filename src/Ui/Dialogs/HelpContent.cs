@@ -27,6 +27,7 @@ namespace LinkGrab.Ui.Dialogs
             new HelpEntry(Glyph.Link, Strings.ButtonGetLinks, Strings.TipGetLinks + " Si la página lo exige, abre el navegador integrado."),
             new HelpEntry(null, Strings.ActionCopy + " (en la fila)", Strings.TipCopy),
             new HelpEntry(null, Strings.ActionReload + " (en la fila)", Strings.TipReload),
+            new HelpEntry(null, Strings.ActionReplace + " (en la fila)", Strings.TipReplace),
             new HelpEntry(null, Strings.ActionCopyAll, "Arriba de la lista. Copia los enlaces de todo lo que se ve, o solo de lo seleccionado, y entonces indica cuántos."),
             new HelpEntry(Glyph.Check, Strings.ButtonVerify, Strings.TipVerify),
             new HelpEntry(Glyph.Play, Strings.ButtonStart, Strings.TipStart),
@@ -40,7 +41,8 @@ namespace LinkGrab.Ui.Dialogs
         {
             new HelpEntry(null, Strings.StateUnsent, "Aún no se ha mandado a JD2."),
             new HelpEntry(null, Strings.StateReady, "Ya tiene enlace directo y falta mandarlo."),
-            new HelpEntry(null, Strings.StateGrabber, "Está en LinkGrabber de JD2, sin descargar todavía."),
+            new HelpEntry(null, Strings.StateGrabber, "Está en LinkGrabber de JD2 con su enlace directo, sin descargar todavía."),
+            new HelpEntry(null, Strings.StateJdPage, "JD2 tiene la página de MediaFire, no el enlace directo; suele pasar si JD2 lo tomó del portapapeles. Obtener enlace lo cambia en el mismo paquete."),
             new HelpEntry(null, Strings.StateBlocked, "Cloudflare frenó la página. Pulsa Obtener enlace en esa fila."),
             new HelpEntry(null, Strings.StateExpired, "El enlace directo ya no sirve. Obtener enlace pide otro."),
             new HelpEntry(null, Strings.StateError, "No se pudo conseguir el enlace; el archivo puede estar eliminado o bloqueado por MediaFire."),

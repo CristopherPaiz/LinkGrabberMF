@@ -44,7 +44,7 @@ namespace LinkGrab.Services
             {
                 string folder = group.Key;
                 string package = folder == "" ? null : FolderPaths.Leaf(folder);
-                List<string> links = group.Select(i => i.DirectUrl).ToList();
+                List<string> links = group.Select(i => JdApi.DirectLinkPrefix + i.DirectUrl).ToList();
 
                 for (int start = 0; start < links.Count; start += Limits.LinksPerJdRequest)
                 {
@@ -55,22 +55,32 @@ namespace LinkGrab.Services
             }
         }
 
-        // A download keeps its exact position in the list; a LinkGrabber link goes back
-        // to its package, so it may land at the package's end.
-        public async Task Reinsert(FileItem item)
+        public Task Reinsert(FileItem item)
         {
-            if (item.JdWhere == JdLocation.Downloads)
+            return Reinsert(new List<FileItem> { item });
+        }
+
+        // Each link keeps its package and its place in it, in LinkGrabber and in downloads.
+        public async Task Reinsert(List<FileItem> targets)
+        {
+            foreach (FileItem item in targets.Where(i => i.JdWhere == JdLocation.Downloads))
             {
                 string destination = DestinationOf(item.Folder);
                 item.JdUuid = await Task.Run(() => DownloadReplacer.Replace(item, destination));
-                item.MarkSent();
             }
-            else
+
+            List<FileItem> grabber = targets.Where(i => i.JdWhere == JdLocation.Grabber).ToList();
+            for (int start = 0; start < grabber.Count; start += Limits.LinksPerJdRequest)
             {
-                await Task.Run(() => JDownloaderClient.RemoveFromGrabber(new[] { item.JdUuid }));
-                await Add(new List<FileItem> { item });
+                List<FileItem> batch = grabber.Skip(start).Take(Limits.LinksPerJdRequest).ToList();
+                await Task.Run(() => GrabberReplacer.Replace(batch, DestinationOf("")));
             }
-            item.JdProblem = false;
+
+            foreach (FileItem item in targets)
+            {
+                item.MarkSent();
+                item.JdProblem = false;
+            }
         }
     }
 }

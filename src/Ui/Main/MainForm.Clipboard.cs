@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -15,7 +16,7 @@ namespace LinkGrab.Ui.Main
         const int WmClipboardUpdate = 0x031D;
         const int BusyCheckMs = 300;
 
-        string lastCopied;
+        readonly CopyRepeatFilter copyRepeats = new CopyRepeatFilter();
 
         [DllImport("user32.dll", SetLastError = true)]
         static extern bool AddClipboardFormatListener(IntPtr window);
@@ -41,10 +42,16 @@ namespace LinkGrab.Ui.Main
 
             List<string> links = LinkText.MediaFirePages(ReadClipboard());
             string copied = string.Join(Environment.NewLine, links);
-            if (links.Count == 0 || copied == lastCopied) return;
-            lastCopied = copied;
+            if (links.Count == 0 || copyRepeats.IsRepeat(copied, DateTime.UtcNow)) return;
 
             while (busy) await Task.Delay(BusyCheckMs);
+
+            // Files already listed need no request; a folder can only be checked by reading it.
+            if (links.All(l => items.Any(i => i.Key == MediaFireClient.KeyOf(l))))
+            {
+                SetStatus(Strings.AlreadyInList);
+                return;
+            }
 
             int added = 0;
             await RunExclusive(async () => added = await AddLinks(copied));

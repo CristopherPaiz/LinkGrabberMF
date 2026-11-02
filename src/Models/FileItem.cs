@@ -1,6 +1,7 @@
 using System;
 using System.Web.Script.Serialization;
 using LinkGrab.Constants;
+using LinkGrab.Services;
 
 namespace LinkGrab.Models
 {
@@ -42,7 +43,16 @@ namespace LinkGrab.Models
         [ScriptIgnore]
         public bool Verifying { get; set; }
 
+        [ScriptIgnore]
+        public string JdUrl { get; set; }
+
         public bool InJd { get { return JdWhere != JdLocation.None; } }
+
+        // JD2 caught the page itself, for example from the clipboard, instead of receiving the direct link.
+        public bool JdUsesPage
+        {
+            get { return InJd && !JdFinished && !JdRunning && LinkText.IsMediaFirePage(JdUrl); }
+        }
 
         public bool IsRemoved
         {
@@ -60,13 +70,14 @@ namespace LinkGrab.Models
             }
         }
 
-        // Also covers a file just added, which has no direct link yet but nothing wrong with it.
+        // Also covers a file just added, which has no direct link yet but nothing wrong with it,
+        // and one JD2 only has as a page.
         public bool WantsLink
         {
-            get { return !JdFinished && !JdRunning && (NeedsLink || (DirectUrl == null && !InJd)); }
+            get { return !JdFinished && !JdRunning && (NeedsLink || (DirectUrl == null && (!InJd || JdUsesPage))); }
         }
 
-        public bool NeedsAttention { get { return !JdFinished && (JdProblem || NeedsLink); } }
+        public bool NeedsAttention { get { return !JdFinished && (JdProblem || NeedsLink || JdUsesPage); } }
 
         public void MarkSent()
         {
@@ -78,6 +89,7 @@ namespace LinkGrab.Models
         {
             JdWhere = JdLocation.None;
             JdUuid = 0;
+            JdUrl = null;
             JdPackage = 0;
             JdStatus = "";
             JdRunning = false;

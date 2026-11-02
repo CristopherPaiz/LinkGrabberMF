@@ -51,8 +51,12 @@ namespace LinkGrab.Services
 
         static void ApplyGrabberLink(FileItem item, JdLink link)
         {
+            // A page caught again from the clipboard doesn't hide the direct link JD2 already has.
+            if (item.InJd && !LinkText.IsMediaFirePage(item.JdUrl) && LinkText.IsMediaFirePage(link.Url)) return;
+
             bool offline = link.Availability == JdApi.Offline;
             item.JdWhere = JdLocation.Grabber;
+            item.JdUrl = link.Url;
             item.JdUuid = link.Uuid;
             item.JdPackage = link.PackageUuid;
             item.JdProblem = offline;
@@ -63,6 +67,7 @@ namespace LinkGrab.Services
         public static void ApplyDownloadLink(FileItem item, JdLink link)
         {
             item.JdWhere = JdLocation.Downloads;
+            item.JdUrl = link.Url;
             item.JdUuid = link.Uuid;
             item.JdPackage = link.PackageUuid;
             item.JdRunning = link.Running;

@@ -3,10 +3,11 @@ using System.Drawing;
 using System.Linq;
 using LinkGrab.Constants;
 using LinkGrab.Models;
+using LinkGrab.Services;
 
 namespace LinkGrab.Ui.Grid
 {
-    public enum RowAction { None, GetLink, Copy, CopyAll, Reload, Send, SendAgain, SendFolder }
+    public enum RowAction { None, GetLink, Copy, CopyAll, Reload, Send, SendAgain, SendFolder, Replace }
 
     public enum ItemFilter { All, Problems, InJd, Done, Removed }
 
@@ -34,13 +35,31 @@ namespace LinkGrab.Ui.Grid
             if (item.LinkState == LinkState.Challenge) return new ItemState(Strings.StateBlocked, Theme.Warn);
             if (item.LinkState == LinkState.Expired) return new ItemState(Strings.StateExpired, Theme.Warn);
             if (item.LinkState == LinkState.Error) return new ItemState(Strings.StateError, Theme.Bad);
+            if (item.JdUsesPage) return new ItemState(Strings.StateJdPage, Theme.Warn);
             if (item.JdProblem) return new ItemState(item.JdStatus, Theme.Warn);
-            if (item.JdWhere == JdLocation.Grabber) return new ItemState(Strings.StateGrabber, Theme.Text);
+            if (item.JdWhere == JdLocation.Grabber) return new ItemState(Strings.StateGrabber, Theme.Good);
             if (item.JdWhere == JdLocation.Downloads) return new ItemState(item.JdStatus, Theme.Text);
             if (item.IsRemoved) return new ItemState(Strings.StateRemoved, Theme.Muted);
             if (item.Sent) return new ItemState(Strings.StateSending, Theme.Muted);
             if (item.LinkState == LinkState.Ready) return new ItemState(Strings.StateReady, Theme.Good);
             return new ItemState(Strings.StateUnsent, Theme.Muted);
+        }
+
+        // Icon and color by file type, so a long list reads at a glance.
+        public static ItemState IconOf(FileItem item)
+        {
+            switch (FileKinds.Of(item.Name))
+            {
+                case FileKind.Archive: return new ItemState(Glyph.Archive, Theme.Orange);
+                case FileKind.Video: return new ItemState(Glyph.Video, Theme.Violet);
+                case FileKind.Audio: return new ItemState(Glyph.Audio, Theme.Pink);
+                case FileKind.Image: return new ItemState(Glyph.Image, Theme.Good);
+                case FileKind.Pdf: return new ItemState(Glyph.Pdf, Theme.Bad);
+                case FileKind.Document: return new ItemState(Glyph.File, Theme.Accent);
+                case FileKind.Disc: return new ItemState(Glyph.Disc, Theme.Cyan);
+                case FileKind.Program: return new ItemState(Glyph.Program, Theme.Text);
+                default: return new ItemState(Glyph.File, Theme.Muted);
+            }
         }
 
         // A file without a link offers to get one; once it has one, to copy or renew it.
@@ -59,6 +78,8 @@ namespace LinkGrab.Ui.Grid
                 actions.Add(RowAction.Reload);
             }
             if (item.CanSend) actions.Add(item.IsRemoved ? RowAction.SendAgain : RowAction.Send);
+            // Getting the link already swaps it in JD2, so Replace only shows once there is one.
+            else if (item.JdUsesPage && !item.WantsLink) actions.Add(RowAction.Replace);
             return actions;
         }
 
@@ -67,6 +88,7 @@ namespace LinkGrab.Ui.Grid
             var actions = new List<RowAction>();
             if (folder.Any(i => i.WantsLink && !i.Resolving)) actions.Add(RowAction.GetLink);
             if (folder.Any(i => i.CanSend)) actions.Add(RowAction.SendFolder);
+            else if (folder.Any(i => i.JdUsesPage && !i.WantsLink && !i.Resolving)) actions.Add(RowAction.Replace);
             return actions;
         }
 
@@ -84,7 +106,7 @@ namespace LinkGrab.Ui.Grid
 
         public static bool RequiresJd(RowAction action)
         {
-            return action == RowAction.Send || action == RowAction.SendAgain || action == RowAction.SendFolder;
+            return action == RowAction.Send || action == RowAction.SendAgain || action == RowAction.SendFolder || action == RowAction.Replace;
         }
 
         public static string LabelOf(RowAction action)
@@ -95,6 +117,7 @@ namespace LinkGrab.Ui.Grid
                 case RowAction.Copy: return Strings.ActionCopy;
                 case RowAction.Reload: return Strings.ActionReload;
                 case RowAction.Send: return Strings.ActionSend;
+                case RowAction.Replace: return Strings.ActionReplace;
                 case RowAction.SendAgain: return Strings.ActionSendAgain;
                 case RowAction.SendFolder: return Strings.ActionSendFolder;
                 default: return null;

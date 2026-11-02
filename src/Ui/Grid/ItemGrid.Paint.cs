@@ -123,7 +123,8 @@ namespace LinkGrab.Ui.Grid
             {
                 case ColName:
                     int x = r.X + CellPainter.ChevronEnd(FolderPaths.Depth(item.Folder));
-                    TextRenderer.DrawText(e.Graphics, Glyph.File, Theme.Icons, new Rectangle(x, r.Y, Theme.S(20), r.Height), Theme.Muted, Painter.TextFlags);
+                    ItemState icon = ItemPresenter.IconOf(item);
+                    TextRenderer.DrawText(e.Graphics, icon.Text, Theme.Icons, new Rectangle(x, r.Y, Theme.S(20), r.Height), icon.Color, Painter.TextFlags);
                     TextRenderer.DrawText(e.Graphics, item.Name, Theme.Normal, new Rectangle(x + Theme.S(24), r.Y, r.Right - x - Theme.S(28), r.Height), Theme.Text, Painter.TextFlags);
                     break;
                 case ColSize:

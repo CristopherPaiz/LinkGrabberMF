@@ -83,7 +83,9 @@ namespace LinkGrab.Constants
         public const string StateVerifying = "Verificando...";
         public const string ActionReload = "Recargar";
         public const string ActionSend = "Enviar";
-        public const string ActionSendAgain = "Enviar de nuevo";
+        public const string ActionSendAgain = "Reenviar";
+        public const string ActionReplace = "Reemplazar";
+        public const string TipReplace = "JD2 tiene la página de MediaFire. Lo cambia por el enlace directo.";
         public const string ActionSendFolder = "Enviar carpeta";
 
         public const string StateDone = "Completado";
@@ -91,7 +93,8 @@ namespace LinkGrab.Constants
         public const string StateBlocked = "Bloqueado por Cloudflare";
         public const string StateExpired = "Enlace caducado";
         public const string StateError = "No se pudo leer";
-        public const string StateGrabber = "En LinkGrabber";
+        public const string StateGrabber = "Ya en JD2";
+        public const string StateJdPage = "En JD2 sin directo";
         public const string StateGrabberOffline = "Sin conexión en LinkGrabber";
         public const string StateRemoved = "Quitado en JD2";
         public const string StateSending = "Enviando a JD2";
@@ -124,7 +127,8 @@ namespace LinkGrab.Constants
         public const string NothingToGet = "Todo tiene enlace ya. Para pedir uno nuevo, usa Recargar en su fila.";
         public const string GettingBlocked = "Obteniendo {0} enlace(s) protegidos por Cloudflare...";
         public const string LinksObtained = "Enlaces obtenidos: {0} de {1}.";
-        public const string LinksCopied = "Enlaces obtenidos: {0} de {1}. Ya están copiados en el portapapeles.";
+        public const string LinksSwapped = "Enlaces obtenidos: {0} de {1}. JD2 ya los tiene como enlace directo, en su mismo paquete.";
+        public const string LinksCopied ="Enlaces obtenidos: {0} de {1}. Ya están copiados en el portapapeles.";
         public const string SelectFolder = "Selecciona una carpeta.";
         public const string FolderInJd = "Esa carpeta ya está en JD2; renómbrala allí.";
         public const string FolderRenamed = "Carpeta renombrada.";
@@ -159,7 +163,8 @@ namespace LinkGrab.Constants
         public const string ToastOneProblem = "Un enlace necesita atención";
         public const string ToastManyProblems = "{0} enlaces necesitan atención";
         public const string ToastProblemBody = "Revisa: {0}";
-        public const string ToastCapturedTitle = "Enlace de MediaFire capturado";
+        public const string AlreadyInList = "Ese enlace ya está en la lista.";
+        public const string ToastCapturedTitle ="Enlace de MediaFire capturado";
         public const string ToastCapturedBody = "Se añadieron {0} archivo(s) a la lista.";
         public const string ToastActionSteps ="Clic para ver los pasos";
         public const string ToastActionOpen = "Clic para abrir LinkGrab";

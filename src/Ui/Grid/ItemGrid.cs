@@ -21,6 +21,7 @@ namespace LinkGrab.Ui.Grid
     {
         const int ColCheck = 0, ColName = 1, ColSize = 2, ColProgress = 3, ColState = 4, ColAction = 5;
         const int HeaderCheckWidth = 30;
+        const int ActionColumnWidth = 226;
 
         readonly HashSet<string> collapsed = new HashSet<string>();
         List<FileItem> items = new List<FileItem>();
@@ -176,7 +177,12 @@ namespace LinkGrab.Ui.Grid
             Rows[index].Selected = chosen;
 
             var folder = Rows[index].Tag as FolderRow;
-            if (folder == null) return;
+            if (folder != null) MatchContents(folder, chosen);
+        }
+
+        // A folder is the parent of what it holds, so its rows follow its own mark.
+        void MatchContents(FolderRow folder, bool chosen)
+        {
             foreach (DataGridViewRow row in Rows)
             {
                 if (IsInFolder(row.Tag, folder)) row.Selected = chosen;
@@ -228,7 +234,7 @@ namespace LinkGrab.Ui.Grid
             Columns.Add(new DataGridViewTextBoxColumn { HeaderText = Strings.ColumnSize, Width = Theme.S(84) });
             Columns.Add(new DataGridViewTextBoxColumn { HeaderText = Strings.ColumnProgress, Width = Theme.S(110) });
             Columns.Add(new DataGridViewTextBoxColumn { HeaderText = Strings.ColumnState, Width = Theme.S(200) });
-            Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "", Width = Theme.S(200), Resizable = DataGridViewTriState.False });
+            Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "", Width = Theme.S(ActionColumnWidth), Resizable = DataGridViewTriState.False });
             foreach (DataGridViewColumn column in Columns) column.SortMode = DataGridViewColumnSortMode.NotSortable;
         }
 
@@ -348,6 +354,7 @@ namespace LinkGrab.Ui.Grid
 
             if (e.ColumnIndex == ColAction) RaiseRowAction(e.RowIndex, tag);
             else if (folder != null && e.ColumnIndex == ColName && ClickedChevron(e.RowIndex, folder)) ToggleFolder(folder);
+            else if (folder != null && e.ColumnIndex != ColCheck) MatchContents(folder, Rows[e.RowIndex].Selected);
         }
 
         bool ClickedChevron(int row, FolderRow folder)
@@ -400,6 +407,8 @@ namespace LinkGrab.Ui.Grid
             {
                 ClearSelection();
                 Rows[e.RowIndex].Selected = true;
+                var folder = Rows[e.RowIndex].Tag as FolderRow;
+                if (folder != null) MatchContents(folder, true);
             }
             CurrentCell = Rows[e.RowIndex].Cells[ColName];
             RowMenu.Show(Cursor.Position);

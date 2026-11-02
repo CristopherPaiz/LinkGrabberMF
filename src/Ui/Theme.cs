@@ -26,6 +26,8 @@ namespace LinkGrab.Ui
         public static readonly Color Bad = Color.FromArgb(240, 100, 100);
         public static readonly Color Violet = Color.FromArgb(167, 139, 250);
         public static readonly Color Cyan = Color.FromArgb(70, 195, 225);
+        public static readonly Color Orange = Color.FromArgb(245, 140, 70);
+        public static readonly Color Pink = Color.FromArgb(236, 110, 170);
         public static readonly Color FolderTint =Color.FromArgb(240, 196, 92);
         public static readonly Color FolderTab = Color.FromArgb(200, 158, 62);
 
@@ -93,6 +95,7 @@ namespace LinkGrab.Ui
     {
         public const string Add = "", Send = "", Link = "", Check = "", Play = "", Stop = "";
         public const string Delete = "", Rename = "", Sync = "", Settings = "", File = "", Help = "";
-        public const string Right = "", Down = "", Warning = "", List = "", Done = "", Download = "", Gone = "";
+        public const string Archive = "", Video = "", Audio = "", Image = "", Pdf = "", Disc = "", Program = "";
+        public const string Right ="", Down = "", Warning = "", List = "", Done = "", Download = "", Gone = "";
     }
 }

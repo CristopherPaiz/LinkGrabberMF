@@ -115,6 +115,32 @@ namespace LinkGrab.Tests
         }
     }
 
+    public static class CopyRepeatFilterTests
+    {
+        static readonly DateTime Start = new DateTime(2026, 1, 1);
+
+        public static void WindowsAnnouncingOneCopyTwiceCountsOnce()
+        {
+            var filter = new CopyRepeatFilter();
+            Check.True(!filter.IsRepeat("a", Start), "primera vez");
+            Check.True(filter.IsRepeat("a", Start.AddMilliseconds(50)), "aviso doble");
+        }
+
+        public static void CopyingTheSameTextLaterIsANewCopy()
+        {
+            var filter = new CopyRepeatFilter();
+            filter.IsRepeat("a", Start);
+            Check.True(!filter.IsRepeat("a", Start.AddSeconds(5)), "copiado de nuevo");
+        }
+
+        public static void DifferentTextIsNeverARepeat()
+        {
+            var filter = new CopyRepeatFilter();
+            filter.IsRepeat("a", Start);
+            Check.True(!filter.IsRepeat("b", Start.AddMilliseconds(50)), "otro texto");
+        }
+    }
+
     public static class LinkTextTests
     {
         public static void FindsUrlsHoweverTheyAreSeparated()

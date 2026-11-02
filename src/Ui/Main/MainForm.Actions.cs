@@ -149,16 +149,18 @@ namespace LinkGrab.Ui.Main
 
         async Task SendItems(List<FileItem> chosen)
         {
-            List<FileItem> targets = chosen.Where(i => i.CanSend).ToList();
+            List<FileItem> targets = chosen.Where(i => i.CanSend || i.JdUsesPage).ToList();
             if (targets.Count == 0)
             {
                 SetStatus(Strings.NothingToSend);
                 return;
             }
 
-            await ResolveAll(targets.Where(i => i.LinkState != LinkState.Ready || i.IsRemoved).ToList());
+            await ResolveAll(targets.Where(i => i.LinkState != LinkState.Ready || i.DirectUrl == null || i.IsRemoved).ToList());
             List<FileItem> ready = targets.Where(i => i.LinkState == LinkState.Ready).ToList();
-            if (ready.Count > 0) await sender.Add(ready);
+            List<FileItem> fresh = ready.Where(i => i.CanSend).ToList();
+            if (fresh.Count > 0) await sender.Add(fresh);
+            await sender.Reinsert(ready.Except(fresh).ToList());
 
             int pending = targets.Count - ready.Count;
             SetStatus(pending > 0 ? string.Format(Strings.SentPending, ready.Count, pending) : string.Format(Strings.Sent, ready.Count), pending > 0);
@@ -220,10 +222,13 @@ namespace LinkGrab.Ui.Main
                 SetResolving(blocked, false);
             }
 
+            // What already went to JD2 isn't copied: if JD2 watches the clipboard, it would catch it again as a page.
             List<FileItem> obtained = targets.Where(i => i.LinkState == LinkState.Ready && i.DirectUrl != null).ToList();
-            bool copied = obtained.Count > 0 && WriteClipboard(obtained.Select(i => i.DirectUrl));
-            if (copied) grid.ConfirmCopied(obtained, false);
-            SetStatus(string.Format(copied ? Strings.LinksCopied : Strings.LinksObtained, obtained.Count, targets.Count), obtained.Count < targets.Count);
+            List<FileItem> toCopy = obtained.Where(i => !CanReinsert(i)).ToList();
+            bool copied = toCopy.Count > 0 && WriteClipboard(toCopy.Select(i => i.DirectUrl));
+            if (copied) grid.ConfirmCopied(toCopy, false);
+            string message = copied ? Strings.LinksCopied : obtained.Count > 0 && toCopy.Count == 0 ? Strings.LinksSwapped : Strings.LinksObtained;
+            SetStatus(string.Format(message, obtained.Count, targets.Count), obtained.Count < targets.Count);
             await SyncJd();
         }
 

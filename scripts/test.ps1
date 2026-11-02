@@ -16,5 +16,10 @@ Copy-Item $app $work
     "/r:$work\LinkGrab.exe" /r:System.Web.Extensions.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll "/recurse:$root\tests\*.cs"
 if ($LASTEXITCODE -ne 0) { throw 'Los tests no compilan.' }
 
-& "$work\LinkGrab.Tests.exe"
-if ($LASTEXITCODE -ne 0) { throw 'Hay tests fallidos.' }
+$run = Start-Process "$work\LinkGrab.Tests.exe" -NoNewWindow -PassThru
+$null = $run.Handle
+if (-not $run.WaitForExit(120000)) {
+    $run.Kill()
+    throw 'Los tests no terminaron en 2 minutos.'
+}
+if ($run.ExitCode -ne 0) { throw 'Hay tests fallidos.' }

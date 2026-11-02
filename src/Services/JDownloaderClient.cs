@@ -95,6 +95,7 @@ namespace LinkGrab.Services
         public static void RemoveFromDownloads(IEnumerable<long> ids) { Send(JdRoutes.DownloadRemove, Ids(ids), NoPackages); }
         public static void SetGrabberEnabled(IEnumerable<long> ids, bool enabled) { Send(JdRoutes.GrabberEnabled, Json.Write(enabled), Ids(ids), NoPackages); }
         public static void SetDownloadEnabled(IEnumerable<long> ids, bool enabled) { Send(JdRoutes.DownloadEnabled, Json.Write(enabled), Ids(ids), NoPackages); }
+        public static void MoveGrabberAfter(long link, long afterLink, long package) { Send(JdRoutes.GrabberMove, Ids(new[] { link }), Json.Write(afterLink), Json.Write(package)); }
         public static void MoveDownloadAfter(long link, long afterLink, long package) { Send(JdRoutes.DownloadMove, Ids(new[] { link }), Json.Write(afterLink), Json.Write(package)); }
 
         // JDownloader may start downloading as soon as links reach the download list.
