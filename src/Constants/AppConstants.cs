@@ -18,6 +18,7 @@ namespace LinkGrab.Constants
         public const string FallbackData = "data";
         public const string Libraries = "lib";
         public const string BrowserProfile = "browser";
+        public const string ProfileVariable = "LINKGRAB_PROFILE";
     }
 
     public static class AppFileNames
@@ -30,9 +31,14 @@ namespace LinkGrab.Constants
 
     public static class WebViewFiles
     {
-        public const string Core = "Microsoft.Web.WebView2.Core.dll";
-        public const string WinForms = "Microsoft.Web.WebView2.WinForms.dll";
-        public const string Loader = "WebView2Loader.dll";
+        public static readonly string[] All =
+        {
+            "Microsoft.Web.WebView2.Core.dll",
+            "Microsoft.Web.WebView2.WinForms.dll",
+            "WebView2Loader.dll"
+        };
+        public const string PackedSuffix = ".gz";
+        public const string PartialSuffix = ".tmp";
         public const string InstallUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
     }
 
@@ -56,9 +62,12 @@ namespace LinkGrab.Constants
         public const int JdWaitStepMs = 500;
         public const int JdWaitSteps = 40;
         public const int ApiHelpCheckMs = 3000;
+        public const int StartupMinimumMs = 700;
+        public const int ButtonFlashMs = 2000;
         public const int BrowserCheckMs = 800;
         public const int ToastLifeMs = 9000;
         public const int ActivityFrameMs = 30;
+        public static readonly TimeSpan BrowserHiddenFor = TimeSpan.FromSeconds(12);
         public static readonly TimeSpan ProbeEvery = TimeSpan.FromMinutes(5);
         public static readonly TimeSpan SentGrace = TimeSpan.FromSeconds(60);
     }
@@ -69,6 +78,7 @@ namespace LinkGrab.Constants
         public const string DefaultClickNLoad = "http://127.0.0.1:9666/flash/";
         public const string TransitPackage = "LinkGrab";
         public const string Offline = "OFFLINE";
+        public const string StateSuffix = "_STATE";
         public const string StateRunning = "RUNNING";
         public const string StatePause = "PAUSE";
         public const string StateStopping = "STOPPING";
@@ -103,6 +113,7 @@ namespace LinkGrab.Constants
         public const string Base = "https://www.mediafire.com/api/1.4/";
         public const string Success = "Success";
         public const string MoreChunks = "yes";
+        public const string ErrorPagePattern = @"mediafire\.com/error\.php";
         public const string ContentFiles = "files";
         public const string ContentFolders = "folders";
         public const string FolderPattern = @"mediafire\.com/folder/([a-z0-9]+)(?:[^#]*)(?:#([a-z0-9]+))?";

@@ -22,8 +22,12 @@ namespace LinkGrab.Ui.Dialogs
         public static readonly HelpEntry[] Buttons =
         {
             new HelpEntry(Glyph.Add, Strings.ButtonAdd, Strings.TipAdd + " Las carpetas se leen con sus subcarpetas."),
-            new HelpEntry(Glyph.Send, Strings.ButtonSend, Strings.TipSend + " Cada subcarpeta llega como un paquete."),
+            new HelpEntry(Glyph.Warning, Strings.ButtonActivateApi, Strings.TipActivate + " Mientras tanto, lo que usa JD2 queda desactivado."),
+            new HelpEntry(Glyph.Send, Strings.ButtonSend,Strings.TipSend + " Cada subcarpeta llega como un paquete."),
             new HelpEntry(Glyph.Link, Strings.ButtonGetLinks, Strings.TipGetLinks + " Si la página lo exige, abre el navegador integrado."),
+            new HelpEntry(null, Strings.ActionCopy + " (en la fila)", Strings.TipCopy),
+            new HelpEntry(null, Strings.ActionReload + " (en la fila)", Strings.TipReload),
+            new HelpEntry(null, Strings.ActionCopyAll, "Arriba de la lista. Copia los enlaces de todo lo que se ve, o solo de lo seleccionado, y entonces indica cuántos."),
             new HelpEntry(Glyph.Check, Strings.ButtonVerify, Strings.TipVerify),
             new HelpEntry(Glyph.Play, Strings.ButtonStart, Strings.TipStart),
             new HelpEntry(Glyph.Stop, Strings.ButtonStop, Strings.TipStop),
@@ -39,7 +43,7 @@ namespace LinkGrab.Ui.Dialogs
             new HelpEntry(null, Strings.StateGrabber, "Está en LinkGrabber de JD2, sin descargar todavía."),
             new HelpEntry(null, Strings.StateBlocked, "Cloudflare frenó la página. Pulsa Obtener enlace en esa fila."),
             new HelpEntry(null, Strings.StateExpired, "El enlace directo ya no sirve. Obtener enlace pide otro."),
-            new HelpEntry(null, Strings.StateError, "No se pudo leer la página; puede estar eliminada o haber cambiado."),
+            new HelpEntry(null, Strings.StateError, "No se pudo conseguir el enlace; el archivo puede estar eliminado o bloqueado por MediaFire."),
             new HelpEntry(null, Strings.StateRemoved, "Lo mandaste, pero ya no está en JD2. Puedes enviarlo de nuevo.")
         };
 
@@ -54,8 +58,10 @@ namespace LinkGrab.Ui.Dialogs
 
         public static readonly HelpEntry[] Keys =
         {
+            new HelpEntry(null, "Copiar un enlace", "Con la app abierta o en el área de notificación, los enlaces de MediaFire que copies se añaden solos. Se puede apagar en Ajustes."),
             new HelpEntry(null, "Ctrl+V", "Añade los enlaces del portapapeles."),
             new HelpEntry(null, "Ctrl+clic, Shift+clic, arrastrar", "Selecciona varias filas. Una carpeta incluye lo que tiene dentro."),
+            new HelpEntry(null, "Casillas", "La de cada fila suma o quita esa fila. La de arriba selecciona todo, y su flecha ofrece otras formas: sin enlace, con enlace, por enviar o con problemas."),
             new HelpEntry(null, "Ctrl+A", "Selecciona todo."),
             new HelpEntry(null, "Supr", "Quita lo seleccionado de la lista."),
             new HelpEntry(null, "F5", "Sincroniza con JD2."),

@@ -5,69 +5,49 @@ using LinkGrab.Ui.Controls;
 
 namespace LinkGrab.Ui.Dialogs
 {
-    public class AddLinksForm : DarkForm
-    {
-        readonly TextBox box = MakeTextBox();
-
-        public string Value { get { return box.Text; } }
-
-        public AddLinksForm() : base(Strings.AddTitle, 620, 330)
-        {
-            box.Multiline = true;
-            box.ScrollBars = ScrollBars.Vertical;
-            box.Left = 18;
-            box.Top = 44;
-            box.Width = 584;
-            box.Height = 220;
-
-            var add = new IconButton(Strings.ButtonAdd, Glyph.Add, true) { Left = 18, Top = 278 };
-            add.Click += (s, e) => DialogResult = DialogResult.OK;
-
-            Controls.AddRange(new Control[]
-            {
-                new Label { Text = Strings.AddPrompt, Left = 18, Top = 16, AutoSize = true },
-                box,
-                add
-            });
-        }
-    }
-
     public class InputForm : DarkForm
     {
+        const int FormWidth = 460;
+
         readonly TextBox box = MakeTextBox();
 
         public string Value { get { return box.Text.Trim(); } }
 
-        public InputForm(string title, string label, string value) : base(title, 460, 130)
+        public InputForm(string title, string label, string value) : base(title, FormWidth, 150)
         {
             box.Text = value;
-            box.Left = 18;
-            box.Top = 42;
-            box.Width = 424;
+            box.Left = Gutter;
+            box.Top = 44;
+            box.Width = FormWidth - Gutter * 2;
 
-            var save = new IconButton(Strings.ButtonAccept, null, true) { Left = 18, Top = 82 };
+            var save = new IconButton(Strings.ButtonAccept, null, true);
             save.Click += (s, e) => DialogResult = DialogResult.OK;
             AcceptButton = save;
+            var cancel = new IconButton(Strings.ButtonCancel) { DialogResult = DialogResult.Cancel };
+            CancelButton = cancel;
 
-            Controls.AddRange(new Control[] { new Label { Text = label, Left = 18, Top = 16, AutoSize = true }, box, save });
+            Controls.AddRange(new Control[] { new Label { Text = label, Left = LabelGutter, Top = 18, AutoSize = true }, box });
+            AddFooter(save, cancel);
         }
     }
 
     public class CloseForm : DarkForm
     {
-        readonly CheckBox remember = new CheckBox { Text = Strings.CloseRemember, Left = 18, Top = 66, AutoSize = true };
+        const int FormWidth = 520;
+
+        readonly CheckBox remember = new CheckBox { Text = Strings.CloseRemember, Left = Gutter, Top = 68, AutoSize = true };
 
         public CloseAction Choice { get; private set; }
         public bool Remember { get { return remember.Checked; } }
 
-        public CloseForm() : base(Strings.CloseTitle, 480, 170)
+        public CloseForm() : base(Strings.CloseTitle, FormWidth, 170)
         {
-            var message = new Label { Text = Strings.CloseMessage, Left = 18, Top = 16, Width = 444, Height = 44 };
-            var row = new FlowLayoutPanel { Left = 18, Top = 112, Width = 450, Height = 40 };
-            row.Controls.Add(MakeChoice(Strings.CloseTray, CloseAction.Tray, true));
-            row.Controls.Add(MakeChoice(Strings.CloseMinimize, CloseAction.Minimize, false));
-            row.Controls.Add(MakeChoice(Strings.CloseExit, CloseAction.Exit, false));
-            Controls.AddRange(new Control[] { message, remember, row });
+            var message = new Label { Text = Strings.CloseMessage, Left = LabelGutter, Top = 18, Width = FormWidth - Gutter * 2, Height = 44 };
+            Controls.AddRange(new Control[] { message, remember });
+            AddFooter(
+                MakeChoice(Strings.CloseTray, CloseAction.Tray, true),
+                MakeChoice(Strings.CloseMinimize, CloseAction.Minimize, false),
+                MakeChoice(Strings.CloseExit, CloseAction.Exit, false));
         }
 
         IconButton MakeChoice(string text, CloseAction action, bool primary)

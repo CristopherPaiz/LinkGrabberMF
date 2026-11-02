@@ -41,15 +41,23 @@ namespace LinkGrab.Ui.Main
                 // Handled below: no snapshot means JD2 didn't answer.
             }
 
-            if (snapshot == null) await ReportJdAway();
-            else await ApplySnapshot(snapshot);
-            syncing = false;
+            try
+            {
+                if (snapshot == null) await ReportJdAway();
+                else await ApplySnapshot(snapshot);
+            }
+            finally
+            {
+                syncing = false;
+                RevealWindow();
+            }
         }
 
         async Task ReportJdAway()
         {
             bool open = await Task.Run(() => JDownloaderClient.JdOpen());
             SetConnection(open ? JdConnection.ApiOff : JdConnection.Closed);
+            RevealWindow();
         }
 
         async Task ApplySnapshot(JdSnapshot snapshot)
@@ -59,14 +67,15 @@ namespace LinkGrab.Ui.Main
             UpdateActivity();
             snapshot.ApplyTo(items);
 
-            int before = items.Count;
-            List<string> fresh = await watcher.Check(snapshot);
-            if (fresh.Count > 0) NotifyProblems(fresh);
-
-            string state = DescribeJdState(snapshot.State);
+            string state = JdStateText.For(snapshot.State, collecting, snapshot.Downloading);
             jdInfo.Text = snapshot.Speed > 0
                 ? string.Format(Strings.JdWithSpeed, state, Theme.FormatSize(snapshot.Speed))
                 : string.Format(Strings.JdPrefix, state);
+            RevealWindow();
+
+            int before = items.Count;
+            List<string> fresh = await watcher.Check(snapshot);
+            if (fresh.Count > 0) NotifyProblems(fresh);
 
             if (items.Count != before || grid.Filter != ItemFilter.All) grid.Rebuild();
             else grid.Invalidate();
@@ -75,22 +84,11 @@ namespace LinkGrab.Ui.Main
             if (settings.AutoRenew && !busy) await RunExclusive(RenewExpired);
         }
 
-        string DescribeJdState(string state)
-        {
-            if (collecting) return Strings.JdCollecting;
-            switch (state)
-            {
-                case JdApi.StateRunning: return Strings.JdDownloading;
-                case JdApi.StatePause: return Strings.JdPaused;
-                case JdApi.StateStopping: return Strings.JdStopping;
-                default: return Strings.JdIdle;
-            }
-        }
-
         void SetConnection(JdConnection value)
         {
             JdConnection previous = connection;
             connection = value;
+            UpdateActions();
 
             jdDot.ForeColor = value == JdConnection.Online ? Theme.Good : Theme.Bad;
             jdInfo.Cursor = value == JdConnection.Online ? System.Windows.Forms.Cursors.Default : System.Windows.Forms.Cursors.Hand;
@@ -98,9 +96,9 @@ namespace LinkGrab.Ui.Main
             if (value == JdConnection.ApiOff) jdInfo.Text = Strings.JdApiOff;
             if (value == previous || !settings.Notifications) return;
 
-            if (value == JdConnection.Closed) Toast.Show(Strings.ToastClosedTitle, Strings.ToastClosedBody, Theme.Bad, ShowWindow);
-            else if (value == JdConnection.ApiOff) Toast.Show(Strings.ToastApiTitle, Strings.ToastApiBody, Theme.Warn, () => ShowApiHelp());
-            else if (previous != JdConnection.Unknown) Toast.Show(Strings.ToastBackTitle, Strings.ToastBackBody, Theme.Good, ShowWindow);
+            if (value == JdConnection.Closed) Toast.Show(Glyph.Stop, Strings.ToastClosedTitle, Strings.ToastClosedBody, Strings.ToastActionSteps, Theme.Bad, () => ShowApiHelp());
+            else if (value == JdConnection.ApiOff) Toast.Show(Glyph.Warning, Strings.ToastApiTitle, Strings.ToastApiBody, Strings.ToastActionSteps, Theme.Warn, () => ShowApiHelp());
+            else if (previous != JdConnection.Unknown) Toast.Show(Glyph.Done, Strings.ToastBackTitle, Strings.ToastBackBody, Strings.ToastActionOpen, Theme.Good, ShowWindow);
         }
 
         void NotifyProblems(List<string> names)
@@ -108,7 +106,7 @@ namespace LinkGrab.Ui.Main
             if (!settings.Notifications) return;
             string heading = names.Count == 1 ? Strings.ToastOneProblem : string.Format(Strings.ToastManyProblems, names.Count);
             string body = string.Join(", ", names.Take(Limits.NotificationNames)) + (names.Count > Limits.NotificationNames ? "..." : "");
-            Toast.Show(heading, body, Theme.Warn, ShowWindow);
+            Toast.Show(Glyph.Warning, heading, string.Format(Strings.ToastProblemBody, body), Strings.ToastActionOpen, Theme.Warn, ShowWindow);
         }
 
         // Brings JD2 and this list into line: imports what only JD2 has and reports what it no longer has.
@@ -121,6 +119,7 @@ namespace LinkGrab.Ui.Main
             grid.Rebuild();
             UpdateSummary();
             SetStatus(string.Format(Strings.Synced, imported, items.Count(i => i.Sent && !i.InJd)));
+            sync.Flash(Strings.ButtonSynced);
         }
 
         async Task RenewExpired()

@@ -1,16 +1,18 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using LinkGrab.Constants;
 
 namespace LinkGrab.Services
 {
-    // WebView2's DLLs ship next to the exe in lib\.
+    // Microsoft's WebView2 DLLs travel compressed inside the exe and are unpacked
+    // the first time the built-in browser opens, once per version.
     public static class WebViewLibs
     {
         public static string LoaderFolder
         {
-            get { return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), AppFolders.Libraries); }
+            get { return Path.Combine(AppFiles.ProfileRoot, AppFolders.Libraries, AppInfo.Version); }
         }
 
         public static string BrowserProfile
@@ -18,19 +20,35 @@ namespace LinkGrab.Services
             get { return Path.Combine(AppFiles.ProfileRoot, AppFolders.BrowserProfile); }
         }
 
-        public static bool AreInstalled
-        {
-            get { return File.Exists(Path.Combine(LoaderFolder, WebViewFiles.Core)) && File.Exists(Path.Combine(LoaderFolder, WebViewFiles.Loader)); }
-        }
-
-        // .NET only looks beside the exe by default, so it needs to be told about lib\.
-        public static void UseLibFolder()
+        public static void LoadOnDemand()
         {
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
-                string path = Path.Combine(LoaderFolder, new AssemblyName(e.Name).Name + ".dll");
-                return File.Exists(path) ? Assembly.LoadFrom(path) : null;
+                string name = new AssemblyName(e.Name).Name + ".dll";
+                if (Array.IndexOf(WebViewFiles.All, name) < 0) return null;
+                Unpack();
+                return Assembly.LoadFrom(Path.Combine(LoaderFolder, name));
             };
+        }
+
+        static void Unpack()
+        {
+            Directory.CreateDirectory(LoaderFolder);
+            foreach (string name in WebViewFiles.All) UnpackFile(name, Path.Combine(LoaderFolder, name));
+        }
+
+        // Writes to a temporary name first so an interrupted copy never looks finished.
+        static void UnpackFile(string name, string target)
+        {
+            if (File.Exists(target)) return;
+            string partial = target + WebViewFiles.PartialSuffix;
+            using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream(name + WebViewFiles.PackedSuffix))
+            using (var unpacked = new GZipStream(source, CompressionMode.Decompress))
+            using (FileStream output = File.Create(partial))
+            {
+                unpacked.CopyTo(output);
+            }
+            File.Move(partial, target);
         }
     }
 }

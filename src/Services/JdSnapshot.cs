@@ -16,6 +16,8 @@ namespace LinkGrab.Services
         public string State { get; private set; }
         public long Speed { get; private set; }
 
+        public bool Downloading { get { return Speed > 0 || Downloads.Any(l => l.Running); } }
+
         public static JdSnapshot Fetch()
         {
             return new JdSnapshot

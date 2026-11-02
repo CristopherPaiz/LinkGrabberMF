@@ -9,6 +9,12 @@ namespace LinkGrab.Ui.Dialogs
     public class DarkForm : Form
     {
         const int TallControl = 30;
+        const int ButtonGap = 8;
+        const int FooterHeight = 70;
+
+        // Left edge of the content, and of labels, whose text starts a little after their edge.
+        protected const int Gutter = 20;
+        protected const int LabelGutter = 18;
 
         public DarkForm(string text, int width, int height)
         {
@@ -38,10 +44,24 @@ namespace LinkGrab.Ui.Dialogs
                 if (control.Dock != DockStyle.None) continue;
                 control.Left = Theme.S(control.Left);
                 control.Top = Theme.S(control.Top);
-                if (control.AutoSize || control is IconButton) continue;
+                if ((control.AutoSize && !(control is TextBox)) || control is IconButton) continue;
                 control.Width = Theme.S(control.Width);
                 if (control.Height > TallControl) control.Height = Theme.S(control.Height);
             }
+        }
+
+        // Lines buttons up against the bottom right corner; the first one given ends up on the right.
+        protected void AddFooter(params IconButton[] buttons)
+        {
+            var footer = new Panel { Dock = DockStyle.Bottom, Height = Theme.S(FooterHeight) };
+            int right = ClientSize.Width - Theme.S(Gutter);
+            foreach (IconButton button in buttons)
+            {
+                button.Location = new Point(right - button.Width, Theme.S(16));
+                right = button.Left - Theme.S(ButtonGap);
+                footer.Controls.Add(button);
+            }
+            Controls.Add(footer);
         }
 
         protected static TextBox MakeTextBox()

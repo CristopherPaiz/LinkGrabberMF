@@ -13,7 +13,12 @@ namespace LinkGrab.Services
 
         public static string ProfileRoot
         {
-            get { return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppInfo.Name); }
+            get
+            {
+                string chosen = Environment.GetEnvironmentVariable(AppFolders.ProfileVariable);
+                if (!string.IsNullOrEmpty(chosen)) return chosen;
+                return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppInfo.Name);
+            }
         }
 
         static string Folder

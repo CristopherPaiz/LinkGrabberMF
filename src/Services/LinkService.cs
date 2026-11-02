@@ -36,7 +36,7 @@ namespace LinkGrab.Services
             });
         }
 
-        static async Task Resolve(FileItem item)
+        public static async Task Resolve(FileItem item)
         {
             try
             {

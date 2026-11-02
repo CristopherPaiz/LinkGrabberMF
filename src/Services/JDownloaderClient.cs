@@ -8,6 +8,15 @@ namespace LinkGrab.Services
 {
     public enum JdConnection { Unknown, Online, ApiOff, Closed }
 
+    public static class JdConnections
+    {
+        // Before the first check, actions stay on and check for themselves.
+        public static bool CanUse(JdConnection connection)
+        {
+            return connection == JdConnection.Online || connection == JdConnection.Unknown;
+        }
+    }
+
     public class JdLink
     {
         public long Uuid { get; set; }

@@ -9,33 +9,45 @@ using LinkGrab.Services;
 using LinkGrab.Ui.Controls;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using LinkState = LinkGrab.Models.LinkState;
 
 namespace LinkGrab.Ui.Dialogs
 {
-    // Shows pages that need a person, one at a time, inside the app.
-    // This window only watches the page until the rule finds the download link.
+    // Opens file pages one at a time and watches them until the rule finds the download link.
+    // It works off screen, and only appears if a page takes too long, since that page needs a person.
     public class BrowserForm : Form
     {
+        static readonly Point OffScreen = new Point(-30000, -30000);
+
+        // WebView2 accepts this only once per process, before anything else of its own.
+        static bool loaderFolderSet;
+
         readonly List<FileItem> queue;
         readonly Func<FileItem, string, Task> onCaptured;
+        readonly Action onReveal;
         readonly WebView2 view = new WebView2();
         readonly Label title = new Label { AutoSize = true, UseMnemonic = false, Font = Theme.Bold };
         readonly Label hint = new Label { AutoSize = true, ForeColor = Theme.Muted };
         readonly Timer watcher = new Timer { Interval = Timing.BrowserCheckMs };
         int index = -1;
         bool checking;
+        bool revealed;
+        DateTime itemStarted;
         Rule rule;
         string host;
 
-        public BrowserForm(List<FileItem> queue, Func<FileItem, string, Task> onCaptured)
+        public BrowserForm(List<FileItem> queue, Func<FileItem, string, Task> onCaptured, Action onReveal)
         {
             this.queue = queue;
             this.onCaptured = onCaptured;
+            this.onReveal = onReveal;
 
             Text = Strings.BrowserTitle;
             Size = new Size(Theme.S(1000), Theme.S(760));
             MinimumSize = new Size(Theme.S(640), Theme.S(480));
-            StartPosition = FormStartPosition.CenterParent;
+            StartPosition = FormStartPosition.Manual;
+            Location = OffScreen;
+            ShowInTaskbar = false;
             BackColor = Theme.Back;
             ForeColor = Theme.Text;
             Font = Theme.Normal;
@@ -77,12 +89,30 @@ namespace LinkGrab.Ui.Dialogs
             Theme.DarkTitleBar(this);
         }
 
+        // While off screen it must not take focus from whatever the person is doing.
+        protected override bool ShowWithoutActivation { get { return true; } }
+
+        void Reveal()
+        {
+            if (revealed) return;
+            revealed = true;
+            onReveal();
+
+            Rectangle area = Screen.FromControl(Owner).WorkingArea;
+            Location = new Point(area.Left + (area.Width - Width) / 2, area.Top + (area.Height - Height) / 2);
+            Activate();
+        }
+
         async Task Start()
         {
             string failure = null, detail = null;
             try
             {
-                CoreWebView2Environment.SetLoaderDllFolderPath(WebViewLibs.LoaderFolder);
+                if (!loaderFolderSet)
+                {
+                    CoreWebView2Environment.SetLoaderDllFolderPath(WebViewLibs.LoaderFolder);
+                    loaderFolderSet = true;
+                }
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, WebViewLibs.BrowserProfile);
                 await view.EnsureCoreWebView2Async(environment);
             }
@@ -101,6 +131,7 @@ namespace LinkGrab.Ui.Dialogs
             {
                 title.Text = failure;
                 hint.Text = detail;
+                Reveal();
                 return;
             }
 
@@ -144,6 +175,7 @@ namespace LinkGrab.Ui.Dialogs
             title.Text = string.Format(Strings.BrowserProgress, index + 1, queue.Count, item.Name);
             hint.Text = Strings.BrowserHint;
             hint.ForeColor = Theme.Muted;
+            itemStarted = DateTime.UtcNow;
             view.CoreWebView2.Navigate(item.PageUrl);
         }
 
@@ -153,10 +185,23 @@ namespace LinkGrab.Ui.Dialogs
             checking = true;
             try
             {
+                // No person can get past this page, so there is no reason to show it.
+                if (MediaFireClient.IsErrorPage(view.CoreWebView2.Source))
+                {
+                    queue[index].LinkState = LinkState.Error;
+                    queue[index].Resolving = false;
+                    Next();
+                    return;
+                }
+
                 string raw = await view.CoreWebView2.ExecuteScriptAsync(WebConstants.ReadHtmlScript);
                 string html = Json.Read<string>(raw);
                 string link = html == null ? null : LinkResolver.Extract(html, rule);
-                if (link == null) return;
+                if (link == null)
+                {
+                    if (DateTime.UtcNow - itemStarted > Timing.BrowserHiddenFor) Reveal();
+                    return;
+                }
 
                 hint.Text = Strings.BrowserCaptured;
                 await onCaptured(queue[index], link);
@@ -166,6 +211,7 @@ namespace LinkGrab.Ui.Dialogs
             {
                 hint.Text = e.Message;
                 hint.ForeColor = Theme.Bad;
+                Reveal();
             }
             finally
             {

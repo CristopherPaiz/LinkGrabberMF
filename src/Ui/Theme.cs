@@ -8,6 +8,7 @@ namespace LinkGrab.Ui
     public static class Theme
     {
         const int DwmUseDarkMode = 20;
+        const string DarkControlTheme = "DarkMode_Explorer";
         const double BytesPerUnit = 1024;
         static readonly string[] SizeUnits = { "B", "KB", "MB", "GB", "TB" };
 
@@ -23,7 +24,9 @@ namespace LinkGrab.Ui
         public static readonly Color Good = Color.FromArgb(87, 200, 130);
         public static readonly Color Warn = Color.FromArgb(245, 170, 70);
         public static readonly Color Bad = Color.FromArgb(240, 100, 100);
-        public static readonly Color FolderTint = Color.FromArgb(240, 196, 92);
+        public static readonly Color Violet = Color.FromArgb(167, 139, 250);
+        public static readonly Color Cyan = Color.FromArgb(70, 195, 225);
+        public static readonly Color FolderTint =Color.FromArgb(240, 196, 92);
         public static readonly Color FolderTab = Color.FromArgb(200, 158, 62);
 
         public static readonly Font Normal = new Font("Segoe UI", 9.5f);
@@ -53,6 +56,23 @@ namespace LinkGrab.Ui
         {
             int enabled = 1;
             DwmSetWindowAttribute(form.Handle, DwmUseDarkMode, ref enabled, sizeof(int));
+        }
+
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        static extern int SetWindowTheme(IntPtr hwnd, string appName, string idList);
+
+        public static void DarkScrollBars(Control control)
+        {
+            SetWindowTheme(control.Handle, DarkControlTheme, null);
+        }
+
+        // Mixes two colors; amount 0 gives "from" and 1 gives "to".
+        public static Color Blend(Color from, Color to, float amount)
+        {
+            return Color.FromArgb(
+                (int)(from.R + (to.R - from.R) * amount),
+                (int)(from.G + (to.G - from.G) * amount),
+                (int)(from.B + (to.B - from.B) * amount));
         }
 
         public static string FormatSize(long bytes)

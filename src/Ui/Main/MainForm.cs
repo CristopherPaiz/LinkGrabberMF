@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using LinkGrab.Constants;
@@ -31,6 +32,8 @@ namespace LinkGrab.Ui.Main
         readonly Timer poll = new Timer();
         readonly JdSender sender;
         readonly StuckDownloadWatcher watcher;
+        readonly DateTime openedAt = DateTime.UtcNow;
+        StartupPanel startup;
         bool exiting;
 
         static string SessionFile { get { return AppFiles.Path(AppFileNames.Session); } }
@@ -39,6 +42,9 @@ namespace LinkGrab.Ui.Main
         {
             sender = new JdSender(settings);
             watcher = new StuckDownloadWatcher(items);
+
+            // Hidden in the tray the window keeps its place, so that is still the screen in use.
+            Toast.WorkArea = () => Screen.FromRectangle(WindowState == FormWindowState.Minimized ? RestoreBounds : Bounds).WorkingArea;
 
             Text = AppInfo.Name;
             Icon = iconNormal;
@@ -51,6 +57,9 @@ namespace LinkGrab.Ui.Main
             KeyPreview = true;
 
             BuildLayout();
+            startup = new StartupPanel(iconNormal) { Bounds = ClientRectangle };
+            Controls.Add(startup);
+            startup.BringToFront();
             BuildTray();
             BuildRowMenu();
             LoadSession();
@@ -72,6 +81,7 @@ namespace LinkGrab.Ui.Main
         {
             base.OnHandleCreated(e);
             Theme.DarkTitleBar(this);
+            AddClipboardFormatListener(Handle);
         }
 
         void ShowWindow()
@@ -135,8 +145,23 @@ namespace LinkGrab.Ui.Main
             tray.Visible = false;
         }
 
+        // Stays up a moment at least, so a fast answer doesn't look like a flicker.
+        async void RevealWindow()
+        {
+            StartupPanel panel = startup;
+            if (panel == null) return;
+            startup = null;
+
+            double left = Timing.StartupMinimumMs - (DateTime.UtcNow - openedAt).TotalMilliseconds;
+            if (left > 0) await Task.Delay((int)left);
+            Controls.Remove(panel);
+            panel.Dispose();
+        }
+
         async void OnKeyDown(object source, KeyEventArgs e)
         {
+            if (Controls.OfType<StartupPanel>().Any()) return;
+
             if (e.Control && e.KeyCode == Keys.V)
             {
                 e.Handled = true;

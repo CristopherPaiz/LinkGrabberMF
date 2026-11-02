@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 using LinkGrab.Constants;
@@ -28,6 +29,8 @@ namespace LinkGrab.Ui.Dialogs
             AddSection(Strings.HelpStates, HelpContent.States);
             AddSection(Strings.HelpFilters, HelpContent.Filters);
             AddSection(Strings.HelpKeys, HelpContent.Keys);
+            content.Controls.Add(MakeHeading(Strings.HelpProject));
+            content.Controls.Add(MakeRepositoryLink());
             Controls.Add(content);
         }
 
@@ -35,8 +38,29 @@ namespace LinkGrab.Ui.Dialogs
 
         void AddSection(string title, HelpEntry[] entries)
         {
-            content.Controls.Add(new Label { Text = title, Font = Theme.Brand, AutoSize = true, Margin = new Padding(0, Theme.S(16), 0, Theme.S(6)) });
+            content.Controls.Add(MakeHeading(title));
             foreach (HelpEntry entry in entries) content.Controls.Add(MakeRow(entry));
+        }
+
+        static Label MakeHeading(string title)
+        {
+            return new Label { Text = title, Font = Theme.Brand, AutoSize = true, Margin = new Padding(0, Theme.S(16), 0, Theme.S(6)) };
+        }
+
+        static LinkLabel MakeRepositoryLink()
+        {
+            var link = new LinkLabel
+            {
+                Text = AppInfo.Repository,
+                AutoSize = true,
+                TabStop = false,
+                Margin = new Padding(0, 0, 0, Theme.S(24)),
+                LinkColor = Theme.Accent,
+                ActiveLinkColor = Theme.Accent,
+                VisitedLinkColor = Theme.Accent
+            };
+            link.LinkClicked += (s, e) => Process.Start(AppInfo.Repository);
+            return link;
         }
 
         static Label MakeParagraph(string text)

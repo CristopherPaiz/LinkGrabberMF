@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using LinkGrab.Constants;
 using LinkGrab.Models;
+using LinkGrab.Services;
 using LinkGrab.Ui.Controls;
 using LinkGrab.Ui.Grid;
 
@@ -15,8 +16,13 @@ namespace LinkGrab.Ui.Main
     {
         readonly Dictionary<ItemFilter, NavItem> nav = new Dictionary<ItemFilter, NavItem>();
         readonly List<Button> actions = new List<Button>();
+        readonly Dictionary<IconButton, string> jdActions = new Dictionary<IconButton, string>();
+        readonly List<ToolStripItem> jdMenuItems = new List<ToolStripItem>();
         readonly ToolTip tips = new ToolTip();
+        readonly IconButton activateJd = new IconButton(Strings.ButtonActivateApi, Glyph.Warning) { Tint = Theme.Warn, Visible = false };
         IconButton getLinks;
+        IconButton verify;
+        IconButton sync;
 
         void BuildLayout()
         {
@@ -44,8 +50,13 @@ namespace LinkGrab.Ui.Main
             nav[ItemFilter.All].Active = true;
 
             var brand = new Label { Text = AppInfo.Name, Font = Theme.Brand, Dock = DockStyle.Top, Height = Theme.S(58), TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(Theme.S(16), 0, 0, 0) };
+            var footer = new Panel { Dock = DockStyle.Bottom, Height = Theme.S(84), BackColor = Theme.Side, Padding = new Padding(0, 0, 0, Theme.S(12)) };
+            footer.Controls.Add(WindowEntry(Strings.ButtonHelp, Glyph.Help, Strings.TipHelp, OpenHelp));
+            footer.Controls.Add(WindowEntry(Strings.ButtonSettings, Glyph.Settings, Strings.TipSettings, OpenSettings));
+
             var sidebar = new Panel { Dock = DockStyle.Left, Width = Theme.S(210), BackColor = Theme.Side };
             sidebar.Controls.Add(entries);
+            sidebar.Controls.Add(footer);
             sidebar.Controls.Add(brand);
             return sidebar;
         }
@@ -73,18 +84,22 @@ namespace LinkGrab.Ui.Main
             tips.SetToolTip(add, Strings.TipAdd);
             toolbar.Controls.Add(add);
 
-            toolbar.Controls.Add(JdAction(Strings.ButtonSend, Glyph.Send, Strings.TipSend, SendSelected));
-            getLinks = JdAction(Strings.ButtonGetLinks, Glyph.Link, Strings.TipGetLinks, GetLinksForSelection);
+            activateJd.Click += async (s, e) => { if (ShowApiHelp()) await SyncJd(); };
+            tips.SetToolTip(activateJd, Strings.TipActivate);
+            toolbar.Controls.Add(activateJd);
+
+            toolbar.Controls.Add(JdAction(Strings.ButtonSend, Glyph.Send, Theme.Violet, Strings.TipSend, SendSelected));
+            getLinks = LocalAction(Strings.ButtonGetLinks, Glyph.Link, Theme.Cyan, Strings.TipGetLinks, GetLinksForSelection);
             toolbar.Controls.Add(getLinks);
-            toolbar.Controls.Add(LocalAction(Strings.ButtonVerify, Glyph.Check, Strings.TipVerify, VerifySelected));
+            verify = LocalAction(Strings.ButtonVerify, Glyph.Check, Theme.Good, Strings.TipVerify, VerifySelected);
+            toolbar.Controls.Add(verify);
             toolbar.Controls.Add(MakeGap());
-            toolbar.Controls.Add(JdAction(Strings.ButtonStart, Glyph.Play, Strings.TipStart, StartDownloads));
-            toolbar.Controls.Add(JdAction(Strings.ButtonStop, Glyph.Stop, Strings.TipStop, StopDownloads));
+            toolbar.Controls.Add(JdAction(Strings.ButtonStart, Glyph.Play, Theme.Good, Strings.TipStart, StartDownloads));
+            toolbar.Controls.Add(JdAction(Strings.ButtonStop, Glyph.Stop, Theme.Bad, Strings.TipStop, StopDownloads));
             toolbar.Controls.Add(MakeGap());
-            toolbar.Controls.Add(LocalAction(Strings.ButtonRemove, Glyph.Delete, Strings.TipRemove, RemoveSelected));
-            toolbar.Controls.Add(JdAction(Strings.ButtonSync, Glyph.Sync, Strings.TipSync, SyncWithJd));
-            toolbar.Controls.Add(WindowButton(Strings.ButtonSettings, Glyph.Settings, Strings.TipSettings, OpenSettings));
-            toolbar.Controls.Add(WindowButton(Strings.ButtonHelp, Glyph.Help, Strings.TipHelp, OpenHelp));
+            toolbar.Controls.Add(LocalAction(Strings.ButtonRemove, Glyph.Delete, Theme.Bad, Strings.TipRemove, RemoveSelected));
+            sync = JdAction(Strings.ButtonSync, Glyph.Sync, Theme.Accent, Strings.TipSync, SyncWithJd);
+            toolbar.Controls.Add(sync);
             return toolbar;
         }
 
@@ -93,30 +108,30 @@ namespace LinkGrab.Ui.Main
             return new Panel { Width = Theme.S(1), Height = Theme.S(22), BackColor = Theme.Line, Margin = new Padding(Theme.S(4), Theme.S(6), Theme.S(10), 0) };
         }
 
-        IconButton LocalAction(string text, string glyph, string tip, Func<Task> work)
+        IconButton LocalAction(string text, string glyph, Color hue, string tip, Func<Task> work)
         {
-            var button = new IconButton(text, glyph);
+            var button = new IconButton(text, glyph) { Hue = hue };
             button.Click += async (s, e) => await RunExclusive(work);
             actions.Add(button);
             tips.SetToolTip(button, tip);
             return button;
         }
 
-        IconButton JdAction(string text, string glyph, string tip, Func<Task> work)
+        IconButton JdAction(string text, string glyph, Color hue, string tip, Func<Task> work)
         {
-            var button = new IconButton(text, glyph);
+            var button = new IconButton(text, glyph) { Hue = hue };
             button.Click += async (s, e) => await RunJd(work);
-            actions.Add(button);
+            jdActions[button] = tip;
             tips.SetToolTip(button, tip);
             return button;
         }
 
-        IconButton WindowButton(string text, string glyph, string tip, Action open)
+        NavItem WindowEntry(string text, string glyph, string tip, Action open)
         {
-            var button = new IconButton(text, glyph);
-            button.Click += (s, e) => open();
-            tips.SetToolTip(button, tip);
-            return button;
+            var entry = new NavItem(text, glyph);
+            entry.Click += (s, e) => open();
+            tips.SetToolTip(entry, tip);
+            return entry;
         }
 
         Control BuildStatusBar()
@@ -170,19 +185,29 @@ namespace LinkGrab.Ui.Main
         void BuildRowMenu()
         {
             ContextMenuStrip menu = MakeMenu();
-            menu.Items.Add(Strings.MenuGetLink, null, async (s, e) => await RunJd(GetLinksForSelection));
-            menu.Items.Add(Strings.MenuSend, null, async (s, e) => await RunJd(SendSelected));
+            menu.Items.Add(Strings.MenuGetLink, null, async (s, e) => await RunExclusive(GetLinksForSelection));
+            jdMenuItems.Add(menu.Items.Add(Strings.MenuSend, null, async (s, e) => await RunJd(SendSelected)));
             menu.Items.Add(Strings.MenuVerify, null, async (s, e) => await RunExclusive(VerifySelected));
             menu.Items.Add(Strings.MenuCopy, null, (s, e) => CopyLinks());
             menu.Items.Add(Strings.MenuRename, null, async (s, e) => await RunExclusive(RenameFolder));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Strings.MenuRemove, null, async (s, e) => await RunExclusive(RemoveSelected));
             grid.RowMenu = menu;
+
+            ContextMenuStrip choose = MakeMenu();
+            choose.Items.Add(Strings.SelectAll, null, (s, e) => grid.SelectAll());
+            choose.Items.Add(Strings.SelectNone, null, (s, e) => grid.ClearSelection());
+            choose.Items.Add(new ToolStripSeparator());
+            choose.Items.Add(Strings.SelectNoLink, null, (s, e) => grid.SelectWhere(i => i.WantsLink));
+            choose.Items.Add(Strings.SelectWithLink, null, (s, e) => grid.SelectWhere(i => i.DirectUrl != null));
+            choose.Items.Add(Strings.SelectUnsent, null, (s, e) => grid.SelectWhere(i => i.CanSend));
+            choose.Items.Add(Strings.SelectProblems, null, (s, e) => grid.SelectWhere(i => i.NeedsAttention));
+            grid.SelectionMenu = choose;
         }
 
         static ContextMenuStrip MakeMenu()
         {
-            return new ContextMenuStrip { BackColor = Theme.Panel, ForeColor = Theme.Text, ShowImageMargin = false, RenderMode = ToolStripRenderMode.System };
+            return new ContextMenuStrip { BackColor = Theme.Panel, ForeColor = Theme.Text, ShowImageMargin = false, ShowItemToolTips = true, RenderMode = ToolStripRenderMode.System };
         }
 
         void UpdateSummary()
@@ -207,11 +232,37 @@ namespace LinkGrab.Ui.Main
             return items.Count == 0 ? total : string.Format(Strings.CountWithSize, total, Theme.FormatSize(items.Sum(i => i.Size)));
         }
 
+        // Whatever needs JD2 turns off while it can't answer; the rest of the list keeps working.
+        void UpdateActions()
+        {
+            bool canUseJd = JdConnections.CanUse(connection);
+            string why = connection == JdConnection.Closed ? Strings.TipNeedsJdOpen : Strings.TipNeedsApi;
+
+            actions.ForEach(b => b.Enabled = !busy);
+            foreach (var action in jdActions)
+            {
+                action.Key.Enabled = !busy;
+                action.Key.Blocked = !canUseJd;
+                tips.SetToolTip(action.Key, canUseJd ? action.Value : why);
+            }
+            foreach (ToolStripItem item in jdMenuItems)
+            {
+                item.Enabled = canUseJd;
+                item.ToolTipText = canUseJd ? null : why;
+            }
+            grid.ActionsEnabled = canUseJd;
+            grid.DisabledActionTip = why;
+
+            activateJd.Text = connection == JdConnection.Closed ? Strings.ButtonOpenJdShort : Strings.ButtonActivateApi;
+            activateJd.Fit();
+            activateJd.Visible = !canUseJd;
+        }
+
         void UpdateGetLinksButton()
         {
-            int pending = items.Count(i => i.NeedsLink);
+            int pending = items.Count(i => i.WantsLink);
             getLinks.Text = pending > 0 ? string.Format(Strings.ButtonGetLinksCount, pending) : Strings.ButtonGetLinks;
-            getLinks.Tint = pending > 0 ? Theme.Warn : (Color?)null;
+            getLinks.Tint = items.Any(i => i.NeedsLink) ? Theme.Warn : (Color?)null;
             getLinks.Fit();
             getLinks.Invalidate();
         }

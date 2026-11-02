@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using LinkGrab.Constants;
@@ -21,7 +20,7 @@ namespace LinkGrab.Ui.Main
         {
             if (busy) return;
             busy = true;
-            actions.ForEach(b => b.Enabled = false);
+            UpdateActions();
             UpdateActivity();
             try
             {
@@ -33,8 +32,8 @@ namespace LinkGrab.Ui.Main
             }
             finally
             {
-                actions.ForEach(b => b.Enabled = true);
                 busy = false;
+                UpdateActions();
                 UpdateActivity();
                 SaveSession();
             }
@@ -56,8 +55,24 @@ namespace LinkGrab.Ui.Main
 
         async void OnRowAction(RowAction action, List<FileItem> targets)
         {
-            if (action == RowAction.GetLink) await RunJd(() => GetLinks(targets));
-            else await RunJd(() => SendItems(targets));
+            switch (action)
+            {
+                case RowAction.GetLink:
+                    await RunExclusive(() => GetLinks(targets.Where(i => i.WantsLink).ToList()));
+                    break;
+                case RowAction.Reload:
+                    await RunExclusive(() => GetLinks(targets));
+                    break;
+                case RowAction.Copy:
+                    CopyToClipboard(targets, false);
+                    break;
+                case RowAction.CopyAll:
+                    CopyToClipboard(targets, true);
+                    break;
+                default:
+                    await RunJd(() => SendItems(targets));
+                    break;
+            }
         }
 
         async Task PromptForLinks()
@@ -71,13 +86,14 @@ namespace LinkGrab.Ui.Main
             await RunExclusive(() => AddLinks(text));
         }
 
-        async Task AddLinks(string text)
+        // Returns how many files are new to the list.
+        async Task<int> AddLinks(string text)
         {
-            List<string> urls = Regex.Matches(text ?? "", WebConstants.UrlPattern).Cast<Match>().Select(m => m.Value).ToList();
+            List<string> urls = LinkText.Urls(text);
             if (urls.Count == 0)
             {
                 SetStatus(Strings.NoLinksFound, true);
-                return;
+                return 0;
             }
 
             int added = 0;
@@ -93,6 +109,10 @@ namespace LinkGrab.Ui.Main
                     items.AddRange(fresh);
                     added += fresh.Count;
                 }
+                catch (UnsupportedSiteException e)
+                {
+                    failure = added > 0 ? string.Format(Strings.AddedWithUnsupported, added, e.Message) : e.Message;
+                }
                 catch (Exception e)
                 {
                     failure = string.Format(Strings.AddedWithFailure, added, url, e.Message);
@@ -103,6 +123,7 @@ namespace LinkGrab.Ui.Main
             UpdateSummary();
             if (failure != null) SetStatus(failure, true);
             else SetStatus(string.Format(Strings.Added, added));
+            return added;
         }
 
         Task ResolveAll(List<FileItem> targets)
@@ -146,25 +167,37 @@ namespace LinkGrab.Ui.Main
 
         async Task VerifySelected()
         {
-            List<FileItem> targets = SelectedOrAll().Where(i => i.DirectUrl != null).ToList();
-            if (targets.Count == 0)
+            List<FileItem> chosen = SelectedOrAll().Where(i => i.DirectUrl != null).ToList();
+            if (chosen.Count == 0)
             {
-                SetStatus(Strings.NothingToVerify);
+                SetStatus(Strings.NothingToVerify, true);
                 return;
             }
 
-            await LinkService.VerifyAll(targets);
-            int bad = targets.Count(i => i.LinkState != LinkState.Ready);
-            SetStatus(string.Format(Strings.Verified, targets.Count, bad), bad > 0);
+            chosen.ForEach(i => i.Verifying = true);
+            grid.Invalidate();
+            await LinkService.VerifyAll(chosen);
+            chosen.ForEach(i => i.Verifying = false);
+
+            int bad = chosen.Count(i => i.LinkState != LinkState.Ready);
+            SetStatus(string.Format(Strings.Verified, chosen.Count, bad), bad > 0);
+            if (bad == 0) verify.Flash(Strings.ButtonVerified);
             UpdateSummary();
             grid.Invalidate();
         }
 
-        // With nothing selected, this acts on everything that lacks a working link.
+        // Only what lacks a working link: asking again for a good one would waste a request.
+        // With nothing selected, that means the whole list.
         Task GetLinksForSelection()
         {
             List<FileItem> selected = grid.SelectedItems();
-            return GetLinks(selected.Count > 0 ? selected : items.Where(i => i.NeedsLink).ToList());
+            return GetLinks((selected.Count > 0 ? selected : items).Where(i => i.WantsLink).ToList());
+        }
+
+        // JD2's copy can only be replaced while it answers; until then the new link stays here.
+        bool CanReinsert(FileItem item)
+        {
+            return item.InJd && JdConnections.CanUse(connection);
         }
 
         // Tries a plain request first; whatever that can't get opens in the built-in browser, one by one.
@@ -179,44 +212,67 @@ namespace LinkGrab.Ui.Main
 
             await RenewLinks(targets);
             List<FileItem> blocked = targets.Where(i => i.LinkState == LinkState.Challenge).ToList();
-            if (blocked.Count > 0) OpenBrowser(blocked);
+            if (blocked.Count > 0)
+            {
+                SetStatus(string.Format(Strings.GettingBlocked, blocked.Count));
+                SetResolving(blocked, true);
+                await ShowBrowser(blocked);
+                SetResolving(blocked, false);
+            }
 
-            int failed = targets.Count(i => i.LinkState != LinkState.Ready);
-            SetStatus(string.Format(Strings.LinksObtained, targets.Count - failed, targets.Count), failed > 0);
+            List<FileItem> obtained = targets.Where(i => i.LinkState == LinkState.Ready && i.DirectUrl != null).ToList();
+            bool copied = obtained.Count > 0 && WriteClipboard(obtained.Select(i => i.DirectUrl));
+            if (copied) grid.ConfirmCopied(obtained, false);
+            SetStatus(string.Format(copied ? Strings.LinksCopied : Strings.LinksObtained, obtained.Count, targets.Count), obtained.Count < targets.Count);
             await SyncJd();
         }
 
+        // One at a time, with each row showing its turn, so a long list doesn't look like a burst to the site.
         async Task RenewLinks(List<FileItem> targets)
         {
-            await ResolveAll(targets);
-            foreach (FileItem item in targets.Where(i => i.LinkState == LinkState.Ready && i.InJd).ToList())
-                await sender.Reinsert(item);
+            for (int i = 0; i < targets.Count; i++)
+            {
+                FileItem item = targets[i];
+                SetStatus(string.Format(Strings.Resolving, i + 1, targets.Count));
+                item.Resolving = true;
+                grid.Invalidate();
+
+                await LinkService.Resolve(item);
+
+                item.Resolving = false;
+                grid.Invalidate();
+                if (item.LinkState == LinkState.Ready && CanReinsert(item)) await sender.Reinsert(item);
+            }
+            UpdateSummary();
         }
 
-        void OpenBrowser(List<FileItem> queue)
+        void SetResolving(List<FileItem> targets, bool value)
         {
-            if (!WebViewLibs.AreInstalled)
-            {
-                SetStatus(Strings.BrowserLibsMissing, true);
-                return;
-            }
-            ShowWindow();
-            ShowBrowser(queue);
+            targets.ForEach(i => i.Resolving = value);
+            grid.Invalidate();
         }
 
         // Kept apart so WebView2 only loads when a page really needs it.
-        void ShowBrowser(List<FileItem> queue)
+        // Not a modal dialog: while it works off screen, this window has to stay responsive.
+        async Task ShowBrowser(List<FileItem> queue)
         {
-            using (var browser = new BrowserForm(queue, OnLinkCaptured)) browser.ShowDialog(this);
+            var closed = new TaskCompletionSource<bool>();
+            using (var browser = new BrowserForm(queue, OnLinkCaptured, ShowWindow))
+            {
+                browser.FormClosed += (s, e) => closed.TrySetResult(true);
+                browser.Show(this);
+                await closed.Task;
+            }
         }
 
         async Task OnLinkCaptured(FileItem item, string link)
         {
             item.DirectUrl = link;
             item.LinkState = LinkState.Ready;
+            item.Resolving = false;
             grid.Invalidate();
             UpdateSummary();
-            if (item.InJd) await sender.Reinsert(item);
+            if (CanReinsert(item)) await sender.Reinsert(item);
             SaveSession();
         }
 
@@ -247,9 +303,19 @@ namespace LinkGrab.Ui.Main
 
         void CopyLinks()
         {
-            List<string> links = grid.SelectedItems().Select(i => i.DirectUrl ?? i.PageUrl).ToList();
+            CopyToClipboard(grid.SelectedItems(), false);
+        }
+
+        void CopyToClipboard(List<FileItem> chosen, bool fromHeader)
+        {
+            List<string> links = chosen.Select(i => i.DirectUrl ?? i.PageUrl).ToList();
             if (links.Count == 0) return;
-            Clipboard.SetText(string.Join(Environment.NewLine, links));
+            if (!WriteClipboard(links))
+            {
+                SetStatus(Strings.CopyFailed, true);
+                return;
+            }
+            grid.ConfirmCopied(chosen, fromHeader);
             SetStatus(string.Format(Strings.Copied, links.Count));
         }
 

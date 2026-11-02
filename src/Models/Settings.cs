@@ -13,6 +13,7 @@ namespace LinkGrab.Models
         {
             BaseFolder = "";
             Notifications = true;
+            WatchClipboard = true;
             PollSeconds = Limits.DefaultPollSeconds;
         }
 
@@ -21,6 +22,7 @@ namespace LinkGrab.Models
         public bool Autostart { get; set; }
         public bool AutoRenew { get; set; }
         public bool Notifications { get; set; }
+        public bool WatchClipboard { get; set; }
         public int PollSeconds { get; set; }
         public CloseAction CloseAction { get; set; }
 

@@ -15,7 +15,7 @@ namespace LinkGrab.Services
         public static string Resolve(string url)
         {
             Rule rule = RuleSet.For(url);
-            if (rule == null) throw new Exception(Strings.ErrorNoRule);
+            if (rule == null) throw new UnsupportedSiteException(url);
             if (rule.Render == RuleKeys.RenderBrowser) throw new ChallengeException(Strings.ErrorRuleBrowser);
 
             string link = Extract(Http.Get(url), rule);

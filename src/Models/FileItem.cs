@@ -1,4 +1,5 @@
 using System;
+using System.Web.Script.Serialization;
 using LinkGrab.Constants;
 
 namespace LinkGrab.Models
@@ -35,6 +36,12 @@ namespace LinkGrab.Models
         public bool JdProblem { get; set; }
         public int JdProgress { get; set; }
 
+        [ScriptIgnore]
+        public bool Resolving { get; set; }
+
+        [ScriptIgnore]
+        public bool Verifying { get; set; }
+
         public bool InJd { get { return JdWhere != JdLocation.None; } }
 
         public bool IsRemoved
@@ -51,6 +58,12 @@ namespace LinkGrab.Models
                 return !JdFinished && !JdRunning
                     && (LinkState == LinkState.Challenge || LinkState == LinkState.Expired || LinkState == LinkState.Error);
             }
+        }
+
+        // Also covers a file just added, which has no direct link yet but nothing wrong with it.
+        public bool WantsLink
+        {
+            get { return !JdFinished && !JdRunning && (NeedsLink || (DirectUrl == null && !InJd)); }
         }
 
         public bool NeedsAttention { get { return !JdFinished && (JdProblem || NeedsLink); } }

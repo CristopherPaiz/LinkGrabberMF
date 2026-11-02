@@ -33,7 +33,8 @@ namespace LinkGrab.Ui.Grid
             DrawBottomLine(e);
 
             var folder = row.Tag as FolderRow;
-            if (folder != null) PaintFolderCell(e, folder);
+            if (e.ColumnIndex == ColCheck) CellPainter.CheckBox(e.Graphics, e.CellBounds, row.Selected, false);
+            else if (folder != null) PaintFolderCell(e, folder);
             else PaintItemCell(e, (FileItem)row.Tag);
             e.Handled = true;
         }
@@ -41,6 +42,28 @@ namespace LinkGrab.Ui.Grid
         void PaintHeader(DataGridViewCellPaintingEventArgs e)
         {
             using (var brush = new SolidBrush(Theme.Panel)) e.Graphics.FillRectangle(brush, e.CellBounds);
+            if (e.ColumnIndex == ColCheck)
+            {
+                bool all = Rows.Count > 0 && SelectedRows.Count == Rows.Count;
+                CellPainter.CheckBox(e.Graphics, e.CellBounds, all, !all && SelectedRows.Count > 0);
+                var arrow = new Rectangle(e.CellBounds.X + Theme.S(HeaderCheckWidth), e.CellBounds.Y, e.CellBounds.Width - Theme.S(HeaderCheckWidth), e.CellBounds.Height);
+                TextRenderer.DrawText(e.Graphics, Glyph.Down, Theme.IconsSmall, arrow, Theme.Muted, Painter.TextFlags);
+                DrawBottomLine(e);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.ColumnIndex == ColAction)
+            {
+                bool enabled = CopyTargets().Count > 0;
+                Rectangle button = CellPainter.ActionAreas(e.CellBounds, new[] { CopyAllLabel() })[0];
+                if (copiedAll > 0) CellPainter.Confirmed(e.Graphics, button, CopyAllLabel());
+                else CellPainter.CopyAll(e.Graphics, button, CopyAllLabel(), button.Contains(PointToClient(Cursor.Position)), enabled);
+                DrawBottomLine(e);
+                e.Handled = true;
+                return;
+            }
+
             Rectangle area = e.CellBounds;
             area.X += Theme.S(10);
             TextRenderer.DrawText(e.Graphics, e.FormattedValue as string, Theme.Small, area, Theme.Muted, Painter.TextFlags);
@@ -75,7 +98,7 @@ namespace LinkGrab.Ui.Grid
                     CellPainter.State(e.Graphics, r, text, problems > 0 ? Theme.Warn : Theme.Muted);
                     break;
                 case ColAction:
-                    if (group.Any(i => i.CanSend)) CellPainter.Action(e.Graphics, r, Strings.ActionSendFolder, e.RowIndex == hoverRow);
+                    PaintActions(e, ItemPresenter.ActionsOf(group), null);
                     break;
             }
         }
@@ -114,9 +137,24 @@ namespace LinkGrab.Ui.Grid
                     CellPainter.State(e.Graphics, r, state.Text, state.Color);
                     break;
                 case ColAction:
-                    string label = ItemPresenter.LabelOf(ItemPresenter.ActionOf(item));
-                    if (label != null) CellPainter.Action(e.Graphics, r, label, e.RowIndex == hoverRow);
+                    PaintActions(e, ItemPresenter.ActionsOf(item), item);
                     break;
+            }
+        }
+
+        void PaintActions(DataGridViewCellPaintingEventArgs e, List<RowAction> actions, FileItem item)
+        {
+            List<Rectangle> areas = CellPainter.ActionAreas(e.CellBounds, actions.Select(a => LabelOf(a, item)));
+            Point mouse = PointToClient(Cursor.Position);
+            for (int i = 0; i < actions.Count; i++)
+            {
+                if (IsConfirming(actions[i], item))
+                {
+                    CellPainter.Confirmed(e.Graphics, areas[i], Strings.ActionCopied);
+                    continue;
+                }
+                bool hover = e.RowIndex == hoverRow && areas[i].Contains(mouse);
+                CellPainter.Action(e.Graphics, areas[i], ItemPresenter.LabelOf(actions[i]), hover, IsActionEnabled(actions[i]));
             }
         }
     }

@@ -24,6 +24,12 @@ namespace LinkGrab.Services
             return match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
         }
 
+        // MediaFire sends removed or blocked files here.
+        public static bool IsErrorPage(string url)
+        {
+            return Regex.IsMatch(url ?? "", MediaFireApi.ErrorPagePattern, RegexOptions.IgnoreCase);
+        }
+
         public static FileItem FromKey(string key, string folder)
         {
             return ToItem(Call(string.Format(FileInfoQuery, key)).file_info, folder);
@@ -43,7 +49,7 @@ namespace LinkGrab.Services
             Match file = Regex.Match(url, MediaFireApi.FilePattern, RegexOptions.IgnoreCase);
             if (file.Success) return new List<FileItem> { FromKey(file.Groups[1].Value, "") };
 
-            if (RuleSet.For(url) == null) throw new Exception(Strings.ErrorNoRule);
+            if (RuleSet.For(url) == null) throw new UnsupportedSiteException(url);
             return new List<FileItem> { new FileItem { Key = url, Name = url, PageUrl = url } };
         }
 
