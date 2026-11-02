@@ -5,12 +5,12 @@ using LinkGrab.Constants;
 
 namespace LinkGrab.Services
 {
-    // Microsoft's signed WebView2 DLLs travel unmodified inside the exe and are copied once per version.
+    // WebView2's DLLs ship next to the exe in lib\.
     public static class WebViewLibs
     {
         public static string LoaderFolder
         {
-            get { return Path.Combine(AppFiles.ProfileRoot, AppFolders.WebViewLibs, AppInfo.Version); }
+            get { return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), AppFolders.Libraries); }
         }
 
         public static string BrowserProfile
@@ -18,27 +18,19 @@ namespace LinkGrab.Services
             get { return Path.Combine(AppFiles.ProfileRoot, AppFolders.BrowserProfile); }
         }
 
-        public static void Install()
+        public static bool AreInstalled
         {
-            string folder = LoaderFolder;
-            Directory.CreateDirectory(folder);
-            foreach (string name in WebViewFiles.All) CopyOut(name, Path.Combine(folder, name));
-
-            AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
-            {
-                string path = Path.Combine(folder, new AssemblyName(e.Name).Name + ".dll");
-                return File.Exists(path) ? Assembly.LoadFrom(path) : null;
-            };
+            get { return File.Exists(Path.Combine(LoaderFolder, WebViewFiles.Core)) && File.Exists(Path.Combine(LoaderFolder, WebViewFiles.Loader)); }
         }
 
-        static void CopyOut(string name, string target)
+        // .NET only looks beside the exe by default, so it needs to be told about lib\.
+        public static void UseLibFolder()
         {
-            if (File.Exists(target)) return;
-            using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
-            using (FileStream output = File.Create(target))
+            AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
-                source.CopyTo(output);
-            }
+                string path = Path.Combine(LoaderFolder, new AssemblyName(e.Name).Name + ".dll");
+                return File.Exists(path) ? Assembly.LoadFrom(path) : null;
+            };
         }
     }
 }

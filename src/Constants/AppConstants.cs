@@ -16,7 +16,7 @@ namespace LinkGrab.Constants
     {
         public const string DataBesideExe = "LinkGrabData";
         public const string FallbackData = "data";
-        public const string WebViewLibs = "wv2";
+        public const string Libraries = "lib";
         public const string BrowserProfile = "browser";
     }
 
@@ -34,7 +34,6 @@ namespace LinkGrab.Constants
         public const string WinForms = "Microsoft.Web.WebView2.WinForms.dll";
         public const string Loader = "WebView2Loader.dll";
         public const string InstallUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
-        public static readonly string[] All = { Core, WinForms, Loader };
     }
 
     public static class Limits

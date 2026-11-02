@@ -1,4 +1,5 @@
-# Downloads the pinned WebView2 package from NuGet, checks its hash and extracts the DLLs to lib\.
+# Puts the pinned WebView2 DLLs in the given folder, downloading them from NuGet if needed.
+param([Parameter(Mandatory)][string]$Target)
 $ErrorActionPreference = 'Stop'
 
 $Version = '1.0.4191.47'
@@ -10,13 +11,9 @@ $Wanted = @{
     'runtimes/win-x64/native/WebView2Loader.dll'     = 'WebView2Loader.dll'
 }
 
-$lib = Join-Path $PSScriptRoot '..\lib'
-if (@($Wanted.Values | Where-Object { -not (Test-Path (Join-Path $lib $_)) }).Count -eq 0) {
-    Write-Host 'lib\ ya esta listo.'
-    return
-}
+if (@($Wanted.Values | Where-Object { -not (Test-Path (Join-Path $Target $_)) }).Count -eq 0) { return }
 
-New-Item -ItemType Directory -Force $lib | Out-Null
+New-Item -ItemType Directory -Force $Target | Out-Null
 $package = Join-Path $env:TEMP "webview2-$Version.nupkg"
 [Net.ServicePointManager]::SecurityProtocol = 'Tls12'
 Write-Host "Descargando WebView2 $Version..."
@@ -32,7 +29,7 @@ $zip = [IO.Compression.ZipFile]::OpenRead($package)
 try {
     foreach ($entry in $zip.Entries) {
         if ($Wanted.ContainsKey($entry.FullName)) {
-            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $lib $Wanted[$entry.FullName]), $true)
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $Target $Wanted[$entry.FullName]), $true)
         }
     }
 }
@@ -40,4 +37,3 @@ finally {
     $zip.Dispose()
     Remove-Item $package
 }
-Write-Host 'Dependencias listas en lib\.'

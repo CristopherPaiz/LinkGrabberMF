@@ -23,7 +23,7 @@ namespace LinkGrab
                 }
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 AppFiles.EnsureRules();
-                WebViewLibs.Install();
+                WebViewLibs.UseLibFolder();
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new MainForm());

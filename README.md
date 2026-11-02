@@ -31,12 +31,14 @@ No hace falta instalar SDK: se usa el compilador de C# incluido en Windows. Haz 
 powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 ```
 
-El resultado es `dist\LinkGrab.exe`, un solo archivo que puedes copiar a otro PC. La primera compilación descarga WebView2 desde NuGet y comprueba su hash SHA-256.
+Cada compilación borra `dist\` y deja solo `LinkGrab.exe` y la carpeta `lib\`. Para llevarla a otro PC, copia ambos juntos. La primera compilación descarga WebView2 desde NuGet y comprueba su hash SHA-256.
+
+Cierra LinkGrab antes de compilar. Si la ejecutaste desde `dist\`, sus datos (`LinkGrabData\`) se borran con la siguiente compilación.
 
 ## Archivos que crea
 
 - `LinkGrabData\` junto al exe: `rules.ini`, `session.json` y `settings.json`. Si no puede escribir ahí, usa `%LocalAppData%\LinkGrab\data`.
-- `%LocalAppData%\LinkGrab`: las DLL de WebView2 y el perfil del navegador integrado.
+- `%LocalAppData%\LinkGrab`: el perfil del navegador integrado.
 
 ## Si un sitio cambia
 
@@ -74,6 +76,6 @@ src/
 
 ## Antivirus y falsos positivos
 
-El exe no está firmado y contiene las DLL de WebView2, que copia a `%LocalAppData%\LinkGrab` para cargarlas. Por eso algunos antivirus con detección heurística pueden marcarlo aunque no tenga código malicioso. El código está aquí para revisarlo y compilarlo uno mismo.
+El exe no está firmado y es nuevo, sin reputación. Por eso algunos antivirus pueden marcarlo aunque no tenga código malicioso. El código está aquí para revisarlo y compilarlo uno mismo.
 
 Lo que reduce esas alertas es firmar el exe con un certificado de código y reportar el falso positivo a cada proveedor.

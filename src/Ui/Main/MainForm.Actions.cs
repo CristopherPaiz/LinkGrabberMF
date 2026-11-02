@@ -195,7 +195,18 @@ namespace LinkGrab.Ui.Main
 
         void OpenBrowser(List<FileItem> queue)
         {
+            if (!WebViewLibs.AreInstalled)
+            {
+                SetStatus(Strings.BrowserLibsMissing, true);
+                return;
+            }
             ShowWindow();
+            ShowBrowser(queue);
+        }
+
+        // Kept apart so WebView2 only loads when a page really needs it.
+        void ShowBrowser(List<FileItem> queue)
+        {
             using (var browser = new BrowserForm(queue, OnLinkCaptured)) browser.ShowDialog(this);
         }
 

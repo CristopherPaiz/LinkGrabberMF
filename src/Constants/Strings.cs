@@ -174,6 +174,7 @@ namespace LinkGrab.Constants
         public const string BrowserNoRuntime = "Este equipo no tiene WebView2";
         public const string BrowserInstall = "Instálalo desde {0} y vuelve a intentarlo.";
         public const string BrowserFailed = "No pude abrir el navegador integrado";
+        public const string BrowserLibsMissing = "Falta la carpeta lib junto a LinkGrab.exe; copia la carpeta completa.";
 
         public const string ErrorNoRule = "ninguna regla de rules.ini coincide";
         public const string ErrorRuleBrowser = "esta regla usa el navegador";
